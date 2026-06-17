@@ -1,0 +1,72 @@
+{
+  "@@locale": "en",
+  "appName": "Flutter Boilerplate",
+
+  "actionOk": "OK",
+  "actionCancel": "Cancel",
+  "actionRetry": "Retry",
+  "actionSave": "Save",
+  "actionDelete": "Delete",
+  "actionEdit": "Edit",
+  "actionClose": "Close",
+
+  "onboardingTitle": "Ship faster",
+  "onboardingBody": "A clean, batteries-included starter so you can focus on your idea.",
+  "onboardingNext": "Next",
+  "onboardingGetStarted": "Get started",
+
+  "signInTitle": "Welcome back",
+  "signInSubtitle": "Sign in to continue",
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "signInButton": "Sign in",
+  "signInHint": "This demo accepts any valid email and password.",
+  "signOut": "Sign out",
+
+  "notesTitle": "Notes",
+  "notesEmpty": "No notes yet. Tap + to create one.",
+  "noteNewTitle": "New note",
+  "noteEditTitle": "Edit note",
+  "noteTitleLabel": "Title",
+  "noteBodyLabel": "Body",
+  "noteSaved": "Note saved",
+  "noteDeleted": "Note deleted",
+  "deleteNoteConfirm": "Delete \"{title}\"?",
+  "@deleteNoteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+
+  "settingsTitle": "Settings",
+  "settingsAppearance": "Appearance",
+  "settingsThemeMode": "Theme",
+  "themeSystem": "System",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "settingsSeedColor": "Accent color",
+  "settingsLanguage": "Language",
+  "languageSystem": "System default",
+  "settingsHaptics": "Haptic feedback",
+  "settingsNotifications": "Notifications",
+  "settingsPremium": "Premium",
+
+  "paywallTitle": "Go Premium",
+  "paywallSubtitle": "Unlock everything and remove ads.",
+  "paywallPurchase": "Subscribe",
+  "paywallRestore": "Restore purchases",
+  "premiumActive": "Premium active",
+  "premiumInactive": "Not subscribed",
+
+  "notificationsDemoTitle": "Notifications",
+  "notificationSendNow": "Send now",
+  "notificationScheduled": "Schedule in 5s",
+  "notificationRequestPermission": "Request permission",
+  "notificationPermissionGranted": "Permission granted",
+  "notificationPermissionDenied": "Permission denied",
+  "notificationSampleTitle": "Hello 👋",
+  "notificationSampleBody": "This is a local notification from your app.",
+
+  "errorGeneric": "Something went wrong.",
+  "loading": "Loading…"
+}

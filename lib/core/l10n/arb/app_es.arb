@@ -1,0 +1,72 @@
+{
+  "@@locale": "es",
+  "appName": "Flutter Boilerplate",
+
+  "actionOk": "OK",
+  "actionCancel": "Cancelar",
+  "actionRetry": "Reintentar",
+  "actionSave": "Guardar",
+  "actionDelete": "Eliminar",
+  "actionEdit": "Editar",
+  "actionClose": "Cerrar",
+
+  "onboardingTitle": "Lanza más rápido",
+  "onboardingBody": "Una plantilla limpia y completa para que te concentres en tu idea.",
+  "onboardingNext": "Siguiente",
+  "onboardingGetStarted": "Empezar",
+
+  "signInTitle": "Bienvenido de nuevo",
+  "signInSubtitle": "Inicia sesión para continuar",
+  "emailLabel": "Correo electrónico",
+  "passwordLabel": "Contraseña",
+  "signInButton": "Iniciar sesión",
+  "signInHint": "Esta demo acepta cualquier correo y contraseña válidos.",
+  "signOut": "Cerrar sesión",
+
+  "notesTitle": "Notas",
+  "notesEmpty": "Aún no hay notas. Toca + para crear una.",
+  "noteNewTitle": "Nueva nota",
+  "noteEditTitle": "Editar nota",
+  "noteTitleLabel": "Título",
+  "noteBodyLabel": "Contenido",
+  "noteSaved": "Nota guardada",
+  "noteDeleted": "Nota eliminada",
+  "deleteNoteConfirm": "¿Eliminar \"{title}\"?",
+  "@deleteNoteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+
+  "settingsTitle": "Ajustes",
+  "settingsAppearance": "Apariencia",
+  "settingsThemeMode": "Tema",
+  "themeSystem": "Sistema",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "settingsSeedColor": "Color de acento",
+  "settingsLanguage": "Idioma",
+  "languageSystem": "Predeterminado del sistema",
+  "settingsHaptics": "Respuesta háptica",
+  "settingsNotifications": "Notificaciones",
+  "settingsPremium": "Premium",
+
+  "paywallTitle": "Hazte Premium",
+  "paywallSubtitle": "Desbloquea todo y elimina los anuncios.",
+  "paywallPurchase": "Suscribirse",
+  "paywallRestore": "Restaurar compras",
+  "premiumActive": "Premium activo",
+  "premiumInactive": "Sin suscripción",
+
+  "notificationsDemoTitle": "Notificaciones",
+  "notificationSendNow": "Enviar ahora",
+  "notificationScheduled": "Programar en 5 s",
+  "notificationRequestPermission": "Solicitar permiso",
+  "notificationPermissionGranted": "Permiso concedido",
+  "notificationPermissionDenied": "Permiso denegado",
+  "notificationSampleTitle": "Hola 👋",
+  "notificationSampleBody": "Esta es una notificación local de tu app.",
+
+  "errorGeneric": "Algo salió mal.",
+  "loading": "Cargando…"
+}

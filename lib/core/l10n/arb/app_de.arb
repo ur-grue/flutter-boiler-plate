@@ -1,0 +1,72 @@
+{
+  "@@locale": "de",
+  "appName": "Flutter Boilerplate",
+
+  "actionOk": "OK",
+  "actionCancel": "Abbrechen",
+  "actionRetry": "Erneut versuchen",
+  "actionSave": "Speichern",
+  "actionDelete": "Löschen",
+  "actionEdit": "Bearbeiten",
+  "actionClose": "Schließen",
+
+  "onboardingTitle": "Schneller veröffentlichen",
+  "onboardingBody": "Ein sauberer Starter mit allem Nötigen, damit du dich auf deine Idee konzentrieren kannst.",
+  "onboardingNext": "Weiter",
+  "onboardingGetStarted": "Loslegen",
+
+  "signInTitle": "Willkommen zurück",
+  "signInSubtitle": "Melde dich an, um fortzufahren",
+  "emailLabel": "E-Mail",
+  "passwordLabel": "Passwort",
+  "signInButton": "Anmelden",
+  "signInHint": "Diese Demo akzeptiert jede gültige E-Mail und jedes Passwort.",
+  "signOut": "Abmelden",
+
+  "notesTitle": "Notizen",
+  "notesEmpty": "Noch keine Notizen. Tippe auf +, um eine zu erstellen.",
+  "noteNewTitle": "Neue Notiz",
+  "noteEditTitle": "Notiz bearbeiten",
+  "noteTitleLabel": "Titel",
+  "noteBodyLabel": "Inhalt",
+  "noteSaved": "Notiz gespeichert",
+  "noteDeleted": "Notiz gelöscht",
+  "deleteNoteConfirm": "\"{title}\" löschen?",
+  "@deleteNoteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+
+  "settingsTitle": "Einstellungen",
+  "settingsAppearance": "Darstellung",
+  "settingsThemeMode": "Design",
+  "themeSystem": "System",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "settingsSeedColor": "Akzentfarbe",
+  "settingsLanguage": "Sprache",
+  "languageSystem": "Systemstandard",
+  "settingsHaptics": "Haptisches Feedback",
+  "settingsNotifications": "Benachrichtigungen",
+  "settingsPremium": "Premium",
+
+  "paywallTitle": "Premium freischalten",
+  "paywallSubtitle": "Schalte alles frei und entferne Werbung.",
+  "paywallPurchase": "Abonnieren",
+  "paywallRestore": "Käufe wiederherstellen",
+  "premiumActive": "Premium aktiv",
+  "premiumInactive": "Nicht abonniert",
+
+  "notificationsDemoTitle": "Benachrichtigungen",
+  "notificationSendNow": "Jetzt senden",
+  "notificationScheduled": "In 5 Sek. planen",
+  "notificationRequestPermission": "Berechtigung anfordern",
+  "notificationPermissionGranted": "Berechtigung erteilt",
+  "notificationPermissionDenied": "Berechtigung verweigert",
+  "notificationSampleTitle": "Hallo 👋",
+  "notificationSampleBody": "Dies ist eine lokale Benachrichtigung deiner App.",
+
+  "errorGeneric": "Etwas ist schiefgelaufen.",
+  "loading": "Wird geladen…"
+}

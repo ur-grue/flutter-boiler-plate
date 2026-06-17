@@ -1,0 +1,72 @@
+{
+  "@@locale": "ar",
+  "appName": "Flutter Boilerplate",
+
+  "actionOk": "حسناً",
+  "actionCancel": "إلغاء",
+  "actionRetry": "إعادة المحاولة",
+  "actionSave": "حفظ",
+  "actionDelete": "حذف",
+  "actionEdit": "تعديل",
+  "actionClose": "إغلاق",
+
+  "onboardingTitle": "أطلق أسرع",
+  "onboardingBody": "قالب نظيف ومتكامل لتركّز على فكرتك.",
+  "onboardingNext": "التالي",
+  "onboardingGetStarted": "ابدأ",
+
+  "signInTitle": "مرحباً بعودتك",
+  "signInSubtitle": "سجّل الدخول للمتابعة",
+  "emailLabel": "البريد الإلكتروني",
+  "passwordLabel": "كلمة المرور",
+  "signInButton": "تسجيل الدخول",
+  "signInHint": "هذا العرض يقبل أي بريد وكلمة مرور صالحين.",
+  "signOut": "تسجيل الخروج",
+
+  "notesTitle": "الملاحظات",
+  "notesEmpty": "لا توجد ملاحظات بعد. اضغط + لإنشاء واحدة.",
+  "noteNewTitle": "ملاحظة جديدة",
+  "noteEditTitle": "تعديل الملاحظة",
+  "noteTitleLabel": "العنوان",
+  "noteBodyLabel": "المحتوى",
+  "noteSaved": "تم حفظ الملاحظة",
+  "noteDeleted": "تم حذف الملاحظة",
+  "deleteNoteConfirm": "حذف \"{title}\"؟",
+  "@deleteNoteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+
+  "settingsTitle": "الإعدادات",
+  "settingsAppearance": "المظهر",
+  "settingsThemeMode": "السمة",
+  "themeSystem": "النظام",
+  "themeLight": "فاتح",
+  "themeDark": "داكن",
+  "settingsSeedColor": "لون التمييز",
+  "settingsLanguage": "اللغة",
+  "languageSystem": "افتراضي النظام",
+  "settingsHaptics": "الاهتزاز اللمسي",
+  "settingsNotifications": "الإشعارات",
+  "settingsPremium": "بريميوم",
+
+  "paywallTitle": "اشترك في بريميوم",
+  "paywallSubtitle": "افتح كل شيء وأزل الإعلانات.",
+  "paywallPurchase": "اشترك",
+  "paywallRestore": "استعادة المشتريات",
+  "premiumActive": "بريميوم مفعّل",
+  "premiumInactive": "غير مشترك",
+
+  "notificationsDemoTitle": "الإشعارات",
+  "notificationSendNow": "إرسال الآن",
+  "notificationScheduled": "جدولة خلال 5 ثوانٍ",
+  "notificationRequestPermission": "طلب الإذن",
+  "notificationPermissionGranted": "تم منح الإذن",
+  "notificationPermissionDenied": "تم رفض الإذن",
+  "notificationSampleTitle": "مرحباً 👋",
+  "notificationSampleBody": "هذا إشعار محلي من تطبيقك.",
+
+  "errorGeneric": "حدث خطأ ما.",
+  "loading": "جارٍ التحميل…"
+}

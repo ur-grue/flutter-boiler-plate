@@ -1,0 +1,56 @@
+name: flutter_boilerplate
+description: A production-grade, AI-agent-friendly Flutter template for vibe-coding mobile apps.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management (Cubit) + value equality.
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+
+  # Routing.
+  go_router: ^14.2.0
+
+  # Dependency injection (manual service locator, no codegen).
+  get_it: ^7.7.0
+
+  # Networking.
+  dio: ^5.7.0
+
+  # Storage.
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^9.2.2
+
+  # Local notifications (immediate + scheduled).
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+  permission_handler: ^11.3.1
+
+  # i18n helpers. `any` lets it resolve to the version Flutter pins, avoiding
+  # `pub get` conflicts across SDK versions.
+  intl: any
+
+  # Gated, mock-default integrations. Present so real impls compile; never
+  # initialized unless the matching AppConfig flag/key is provided.
+  google_mobile_ads: ^5.2.0
+  purchases_flutter: ^8.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+
+flutter:
+  generate: true
+  uses-material-design: true
