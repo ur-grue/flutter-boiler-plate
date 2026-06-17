@@ -47,9 +47,15 @@ void main(List<String> args) {
   });
 
   // 3. Native ids (if generated).
-  final gradle = File('android/app/build.gradle');
-  if (gradle.existsSync()) {
-    _replace(gradle, {_oldBundle: bundleId});
+  // Both Groovy and Kotlin-DSL gradle files (recent Flutter uses .kts).
+  for (final path in const [
+    'android/app/build.gradle',
+    'android/app/build.gradle.kts',
+  ]) {
+    final gradle = File(path);
+    if (gradle.existsSync()) {
+      _replace(gradle, {_oldBundle: bundleId});
+    }
   }
   final pbx = File('ios/Runner.xcodeproj/project.pbxproj');
   if (pbx.existsSync()) {

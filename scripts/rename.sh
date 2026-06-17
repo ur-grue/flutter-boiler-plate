@@ -51,11 +51,13 @@ sedi "s|^name: ${OLD_PKG}|name: ${NEW_PKG}|" pubspec.yaml
 sedi "s|appName = '.*'|appName = '${APP_NAME}'|" lib/core/config/app_info.dart
 sedi "s|bundleId = '.*'|bundleId = '${BUNDLE_ID}'|" lib/core/config/app_info.dart
 
-# 4. Native ids (only if `flutter create .` has run).
-if [[ -f android/app/build.gradle ]]; then
-  sedi "s|applicationId \"${OLD_BUNDLE}\"|applicationId \"${BUNDLE_ID}\"|" android/app/build.gradle || true
-  sedi "s|applicationId = \"${OLD_BUNDLE}\"|applicationId = \"${BUNDLE_ID}\"|" android/app/build.gradle || true
-fi
+# 4. Native ids (only if `flutter create .` has run). Handles both the Groovy
+#    (build.gradle) and Kotlin-DSL (build.gradle.kts) gradle files that recent
+#    Flutter versions generate — replacing the old bundle id wherever it appears
+#    (applicationId + namespace), regardless of quoting/DSL.
+for g in android/app/build.gradle android/app/build.gradle.kts; do
+  [[ -f "$g" ]] && sedi "s|${OLD_BUNDLE}|${BUNDLE_ID}|g" "$g" || true
+done
 if [[ -f ios/Runner.xcodeproj/project.pbxproj ]]; then
   sedi "s|PRODUCT_BUNDLE_IDENTIFIER = [^;]*;|PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};|g" ios/Runner.xcodeproj/project.pbxproj || true
 fi
