@@ -30,6 +30,9 @@ Thumbs.db
 dart_define*.json
 !dart_define.example.json
 
+# App Factory session tracking
+.appfactory_session
+
 # Signing / service config
 *.jks
 *.keystore

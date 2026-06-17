@@ -12,3 +12,6 @@ Quick reminders for Claude Code:
 - Localize every string across all ARB files in `lib/core/l10n/arb/`.
 - Never commit secrets; config comes from `AppConfig` (`--dart-define`).
 - After changes: `flutter analyze` (clean) + `flutter test`.
+
+Design skills inform intent and critique only. All UI is Flutter + Material 3 per
+AGENTS.md. Ignore web/CSS advice (hover, HTML, gradients); use the boilerplate theme.
