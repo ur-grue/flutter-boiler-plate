@@ -23,7 +23,14 @@ API keys** out of the box (mock/no-op service impls you swap for real backends l
 ## Quick start
 
 ```bash
-# 1) Use this template on GitHub, then clone your new repo.
+# 1) Create your repo from this template, then clone it.
+#    GitHub UI: "Use this template" → "Create a new repository", then:
+git clone https://github.com/<you>/<your-app>.git
+cd <your-app>
+#    Or in one step with the GitHub CLI:
+gh repo create <your-app> --template ur-grue/flutter-boiler-plate --private --clone
+cd <your-app>
+
 # 2) Generate native platform folders (keeps lib/):
 flutter create .
 
