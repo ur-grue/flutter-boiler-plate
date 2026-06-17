@@ -72,8 +72,13 @@ fi
 hd "Project setup"
 if [[ -d android || -d ios ]]; then
   ok "Native platform folders present"
+  if grep -rqs "CoreLibraryDesugaringEnabled" android/app/build.gradle android/app/build.gradle.kts; then
+    ok "Android native config plugin-ready (desugaring)"
+  else
+    note "Android not plugin-ready  →  run: bash scripts/postcreate.sh"
+  fi
 else
-  note "No android/ios yet  →  run: flutter create ."
+  note "No android/ios yet  →  run: flutter create .  (then: bash scripts/postcreate.sh)"
 fi
 if [[ -f dart_define.dev.json ]]; then
   ok "dart_define.dev.json present"

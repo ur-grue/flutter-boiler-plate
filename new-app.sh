@@ -52,6 +52,8 @@ note "Scaffolding…"
 flutter create . >/dev/null
 if [[ -f scripts/rename.sh ]]; then bash scripts/rename.sh "$APP_NAME" "$BUNDLE_ID";
 elif [[ -f tool/rename.dart ]]; then dart run tool/rename.dart "$APP_NAME" "$BUNDLE_ID"; fi
+# Make native projects plugin-ready (desugaring, minSdk, iOS target).
+[[ -f scripts/postcreate.sh ]] && bash scripts/postcreate.sh
 
 # dart_define from central secrets + app values (client-safe keys only)
 cat > dart_define.dev.json <<JSON
