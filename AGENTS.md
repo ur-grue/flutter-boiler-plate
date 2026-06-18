@@ -41,9 +41,11 @@ backends/services without touching UI or domain code.
 5. `data/<x>_repository_impl.dart` — wrap calls in `guardAsync`.
 6. `presentation/cubit/<x>_state.dart` (sealed) + `<x>_cubit.dart`.
 7. `presentation/pages/...` — `BlocProvider(create: () => getIt<XCubit>()..load())`.
-8. Register repo + cubits in `injector.dart`.
-9. Add a route in `core/router/routes.dart` + `app_router.dart`.
-10. Add ARB keys to **all** locales.
+8. `<x>_module.dart` — `registerX(GetIt di)` (repo + cubits) and `List<RouteBase> xRoutes()`.
+   The feature OWNS its DI + routes here; do **not** edit `injector.dart`/`app_router.dart`.
+9. Activate it (append-only): add one line to `core/di/feature_modules.dart` and one to
+   `core/router/feature_routes.dart`; add any route constants to `core/router/routes.dart`.
+10. Add ARB keys to **all** locales (`app_en/de/es/ar.arb`) — append only.
 11. Add a `blocTest` in `test/features/<x>/`.
 
 ## Routing
@@ -72,11 +74,25 @@ native capabilities go behind a `services/` interface with a mock default (see a
 - `dart_define*.json` (except `.example`), signing files, `google-services.json`,
   `GoogleService-Info.plist` — secrets; gitignored.
 
+## Building features in parallel
+
+Because each feature owns its `<x>_module.dart` and only **appends** one line to
+`core/di/feature_modules.dart` and `core/router/feature_routes.dart`, several
+feature-builders can run **concurrently in isolated git worktrees** without clobbering
+`injector.dart`/`app_router.dart`. The one shared file they each append to is the ARB set
+(`core/l10n/arb/app_*.arb`) — append keys only, never reorder.
+
+After a parallel fan-out, run a single **serial stitch gate** before merging: regenerate
+localizations (`flutter gen-l10n`), then `dart format`, `flutter analyze --fatal-warnings`,
+and `flutter test` must all pass on the combined result. Resolve any ARB key collisions
+there. Never merge a worktree that hasn't passed the gate.
+
 ## Removing the example feature
 
 `features/example_notes/` is a reference, not a requirement. To start clean: delete the
-folder, remove its routes from `core/router/`, its DI lines from `injector.dart`, and
-its tests. Point `Routes.notes` (the post-auth home) at your own first screen.
+folder (including `example_notes_module.dart`), remove its one line from
+`core/di/feature_modules.dart` and `core/router/feature_routes.dart`, and delete its tests.
+Point `Routes.notes` (the post-auth home) at your own first screen.
 
 ## Before you finish
 

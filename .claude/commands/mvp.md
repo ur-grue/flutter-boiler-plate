@@ -6,9 +6,13 @@ no secrets). Design skills inform intent only — all UI is Flutter + Material 3
 Do, in order:
 1. /spec  → write APP_SPEC.md from the inputs.
 2. /theme → tasteful Material 3 theme from /design tokens if present, else brand keywords.
-3. Build each screen in APP_SPEC with the feature-builder subagent, ONE AT A TIME
-   (shared files injector.dart + router are edited serially, never in parallel):
-   onboarding, home/input, output/detail, settings.
+3. Build the screens in APP_SPEC with feature-builder subagents — run them IN PARALLEL,
+   each in its own git worktree (Agent isolation: "worktree"). Each feature owns its
+   `<x>_module.dart` and only appends to `core/di/feature_modules.dart` +
+   `core/router/feature_routes.dart` (+ ARB keys), so worktrees merge cleanly. After the
+   fan-out, run ONE serial STITCH GATE on the merged result: `flutter gen-l10n`, then
+   `dart format`, `flutter analyze --fatal-warnings`, `flutter test` — all must pass;
+   resolve any ARB key collisions here. Cap fan-out at ~3-4 to control cost.
 4. /swap-backend supabase  (auth + main data) + in-app account deletion.
 5. /wire-paywall  (entitlement "premium").
 6. In parallel (no shared code): /legal and /aso.
