@@ -38,6 +38,17 @@ in the app** and never goes into `dart_define`.
 - **Purpose:** brand voice, launch & growth copy.
 - **Consumed by:** feeds **/aso** (positioning / copy).
 
+### ui-ux-pro-max
+- **Source:** `nextlevelbuilder/ui-ux-pro-max-skill` (Claude plugin / marketplace; MIT) —
+  pin to the marketplace ref recorded at install time.
+- **Install:** `claude plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` then
+  `claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill --scope project`
+- **Keyless?** Yes — no API key.
+- **Purpose:** UI/UX design intelligence — generates a design SYSTEM (style, palette,
+  typography, UX rules) for the product category.
+- **Consumed by:** **/theme** (design intent). ⚠ Defaults to web (HTML/Tailwind) — use its
+  palette/typography/UX *intent* only; map to Flutter Material 3, ignore any web code.
+
 ### gstack
 - **Source:** `garrytan/gstack` (git clone + `./setup` into `~/.claude/skills/gstack`) —
   pin to the cloned commit recorded at install time.
@@ -78,6 +89,10 @@ in the app** and never goes into `dart_define`.
 
 Keep these lanes separate to avoid overlap: route ASO mechanics through `aso-skills`,
 route voice/launch copy through `marketing-skills`.
+
+**Design lane (decide → refine → QA):** `ui-ux-pro-max` *decides* the design system up
+front (/theme); `impeccable` *refines* the built UI (polish / anti-slop); gstack
+`design-review` + the `design-critic` agent *QA* the result. Don't blur these.
 
 ---
 
