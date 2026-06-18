@@ -12,7 +12,8 @@ const _oldBundle = 'com.example.flutter_boilerplate';
 
 void main(List<String> args) {
   if (args.length < 2) {
-    stderr.writeln('Usage: dart run tool/rename.dart "App Name" com.acme.myapp');
+    stderr
+        .writeln('Usage: dart run tool/rename.dart "App Name" com.acme.myapp');
     exit(1);
   }
   final appName = args[0];

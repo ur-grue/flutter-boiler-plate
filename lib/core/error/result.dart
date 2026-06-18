@@ -35,8 +35,7 @@ sealed class Result<T> {
       };
 
   /// Chains another `Result`-returning operation.
-  Result<R> flatMap<R>(Result<R> Function(T value) transform) =>
-      switch (this) {
+  Result<R> flatMap<R>(Result<R> Function(T value) transform) => switch (this) {
         Ok<T>(:final value) => transform(value),
         Err<T>(:final failure) => Err(failure),
       };

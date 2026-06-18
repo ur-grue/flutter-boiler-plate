@@ -13,7 +13,13 @@ import 'package:go_router/go_router.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
-  static const _locales = <Locale?>[null, Locale('en'), Locale('de'), Locale('es'), Locale('ar')];
+  static const _locales = <Locale?>[
+    null,
+    Locale('en'),
+    Locale('de'),
+    Locale('es'),
+    Locale('ar')
+  ];
 
   @override
   Widget build(BuildContext context) {

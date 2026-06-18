@@ -23,7 +23,8 @@ class LoggingInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+  void onResponse(
+      Response<dynamic> response, ResponseInterceptorHandler handler) {
     if (!kReleaseMode) {
       AppLogger.debug(
         '← ${response.statusCode} ${response.requestOptions.uri}',

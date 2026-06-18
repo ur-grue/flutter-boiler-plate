@@ -105,6 +105,5 @@ class ServerFailureFromPlatform {
   const ServerFailureFromPlatform(this.exception);
   final PlatformException exception;
 
-  Failure toFailure() =>
-      ServerFailure(exception.message ?? 'Purchase failed.');
+  Failure toFailure() => ServerFailure(exception.message ?? 'Purchase failed.');
 }

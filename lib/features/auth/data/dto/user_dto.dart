@@ -24,6 +24,5 @@ class UserDto {
         'displayName': displayName,
       };
 
-  AppUser toEntity() =>
-      AppUser(id: id, email: email, displayName: displayName);
+  AppUser toEntity() => AppUser(id: id, email: email, displayName: displayName);
 }

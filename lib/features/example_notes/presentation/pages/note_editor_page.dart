@@ -93,7 +93,8 @@ class _NoteEditorViewState extends State<_NoteEditorView> {
                   children: [
                     TextFormField(
                       controller: _titleController,
-                      decoration: InputDecoration(labelText: l10n.noteTitleLabel),
+                      decoration:
+                          InputDecoration(labelText: l10n.noteTitleLabel),
                       textInputAction: TextInputAction.next,
                       validator: (v) =>
                           Validators.notEmpty(v, field: l10n.noteTitleLabel),
