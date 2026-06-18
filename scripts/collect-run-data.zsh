@@ -10,16 +10,21 @@
 #   • the spec + the interview inputs
 #   • static analysis + test results
 #   • git history, toolchain report, project file tree
-# …then REDACTS anything secret-looking, writes a manifest, and (optionally)
-# asks Claude — using THREE PARALLEL subagents — to synthesise a LEARNINGS.md
-# of concrete improvements to the factory. Finally it tars the lot for sharing.
+# …then REDACTS anything secret-looking and writes a manifest. By default it
+# DOES NOT spawn Claude: instead it writes an ANALYZE.md prompt and hands the
+# synthesis of LEARNINGS.md to YOUR CURRENT interactive Claude session (lighter,
+# faster, no model-access surprises). Pass --analyze to opt into the old behavior
+# (a spawned `claude -p` pass with three parallel subagents). Finally it tars the
+# lot for sharing.
 #
 # Run it from the ROOT of a generated app repo.
 #
 # Options:
-#   --no-analyze   collect only; skip the Claude analysis pass
+#   --analyze      opt in: spawn `claude -p` with 3 parallel subagents to write
+#                  LEARNINGS.md (heavier; needs model access)
+#   --no-analyze   collect only (this is the default; harmless alias)
 #   --out <dir>    output base dir (default: ./debug)
-#   --model <id>   model for the analysis pass (e.g. claude-opus-4-8)
+#   --model <id>   model for the spawned analysis pass (e.g. claude-opus-4-8)
 #   -h | --help    this screen
 #
 # Safe by design: every collection step is non-fatal, and secrets are scrubbed
@@ -28,12 +33,14 @@
 set -uo pipefail   # NOT -e: individual collection steps are allowed to fail.
 
 # ── args ────────────────────────────────────────────────────────────────────────
-DO_ANALYZE=1
+# Default: collect only and hand synthesis to the user's current Claude session.
+DO_ANALYZE=0
 OUT="./debug"
 MODEL=""
 HELP=0
 while (( $# )); do
   case "$1" in
+    --analyze)    DO_ANALYZE=1 ;;
     --no-analyze) DO_ANALYZE=0 ;;
     --out)        shift; OUT="${1:-./debug}" ;;
     --model)      shift; MODEL="${1:-}" ;;
@@ -81,16 +88,20 @@ usage() {
     echo
     gum style --foreground "$CYAN" --bold "OPTIONS"
     gum style --foreground "$GREY" \
-      "  --no-analyze   collect only; skip the Claude analysis pass" \
+      "  (default)      collect only; hand synthesis to your current Claude session" \
+      "  --analyze      opt in: spawn 'claude -p' with 3 parallel subagents" \
+      "  --no-analyze   collect only (default; harmless alias)" \
       "  --out <dir>    output base dir (default: ./debug)" \
-      "  --model <id>   model for the analysis pass (e.g. claude-opus-4-8)" \
+      "  --model <id>   model for the spawned analysis pass (e.g. claude-opus-4-8)" \
       "  -h --help      this screen"
   else
     print -r -- "APP FACTORY // collect-run-data — harvest, redact, learn"
     print -r -- "USAGE:   ./scripts/collect-run-data.zsh [options]"
-    print -r -- "  --no-analyze   collect only; skip the Claude analysis pass"
+    print -r -- "  (default)      collect only; hand synthesis to your current Claude session"
+    print -r -- "  --analyze      opt in: spawn 'claude -p' with 3 parallel subagents"
+    print -r -- "  --no-analyze   collect only (default; harmless alias)"
     print -r -- "  --out <dir>    output base dir (default: ./debug)"
-    print -r -- "  --model <id>   model for the analysis pass (e.g. claude-opus-4-8)"
+    print -r -- "  --model <id>   model for the spawned analysis pass (e.g. claude-opus-4-8)"
     print -r -- "  -h --help      this screen"
   fi
   exit 0
@@ -103,6 +114,12 @@ OUTDIR="${OUT}/run-${STAMP}"
 mkdir -p "$OUTDIR" || { print -u2 "could not create $OUTDIR"; exit 1; }
 # Absolute path so Claude (run later) can read artifacts regardless of cwd.
 OUTDIR_ABS="${OUTDIR:A}"
+
+# ── project-root guard (non-fatal but unmissable) ─────────────────────────────────
+if [[ ! -f pubspec.yaml && ! -d lib ]]; then
+  warn "This doesn't look like a Flutter app root (no pubspec.yaml or lib/)."
+  warn "cd into your generated app before running, or the harvest will be mostly empty."
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PHASE 1 — COLLECT (each step non-fatal)
@@ -409,6 +426,8 @@ describe() {
     pubspec.yaml)            print "project manifest / dependencies" ;;
     file-tree.txt)           print "sorted list of files under lib/" ;;
     dart_define.dev.json)    print "client config (redacted)" ;;
+    ANALYZE.md)              print "ready-to-use prompt for an interactive Claude session → LEARNINGS.md" ;;
+    LEARNINGS.md)            print "synthesised App Factory improvements (from the --analyze pass)" ;;
     flutter.MISSING.txt|flutter-doctor.MISSING.txt) print "note: flutter not on PATH" ;;
     git.MISSING.txt)         print "note: git unavailable" ;;
     *)                       print "collected artifact" ;;
@@ -434,22 +453,15 @@ done
 ok "manifest.md"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PHASE 4 — OPTIONAL CLAUDE ANALYSIS (3 parallel subagents)
+# PHASE 4 — SYNTHESIS HANDOFF (default) / OPTIONAL SPAWNED CLAUDE PASS (--analyze)
 # ──────────────────────────────────────────────────────────────────────────────
-run_analysis() {
-  section "04" "SYNTHESISING LEARNINGS (AI)"
-  if (( ! DO_ANALYZE )); then
-    step "--no-analyze set — skipping the Claude analysis pass"
-    return 0
-  fi
-  if ! command -v claude >/dev/null 2>&1; then
-    warn "claude CLI not found — skipping analysis (collection is complete)"
-    return 0
-  fi
 
-  local prompt
-  prompt="You are reviewing the artifacts of an automated 'App Factory' build that
-generated a Flutter mobile app. All artifacts are in the current directory.
+# Build the synthesis prompt once and write it to ANALYZE.md, so the interactive
+# handoff and the spawned --analyze pass use byte-for-byte the same instructions.
+ANALYZE_PROMPT="You are reviewing the artifacts of an automated 'App Factory' build that
+generated a Flutter mobile app. All artifacts are in this directory. Read them:
+manifest.md, transcript.jsonl, analyze.txt, test.txt, file-tree.txt,
+git-diffstat.txt, APP_SPEC.md, APPFACTORY_INPUTS.md, flutter-doctor.txt.
 
 LAUNCH THREE SUBAGENTS IN PARALLEL using your Task tool — run all three at once,
 do not run them sequentially. Each subagent reads files from this directory:
@@ -468,15 +480,42 @@ actionable list of improvements to the App Factory itself — specifically to
 setup.zsh, mvp.md, and the agent/skill definitions. Lead with the highest-impact
 fixes. Be concrete; cite the artifact that motivated each recommendation."
 
+write_analyze_prompt() {
+  print -r -- "$ANALYZE_PROMPT" > "$OUTDIR_ABS/ANALYZE.md"
+  ok "ANALYZE.md (synthesis prompt for an interactive Claude session)"
+}
+
+run_spawned_analysis() {
+  if ! command -v claude >/dev/null 2>&1; then
+    warn "claude CLI not found — skipping spawned analysis (collection is complete)"
+    return 0
+  fi
   step "launching Claude with 3 parallel subagents (non-fatal)"
   local model_arg=()
   [[ -n "$MODEL" ]] && model_arg=(--model "$MODEL")
-  if ( cd "$OUTDIR_ABS" && claude -p "$prompt" --permission-mode acceptEdits "${model_arg[@]}" ); then
+  if ( cd "$OUTDIR_ABS" && claude -p "$ANALYZE_PROMPT" --permission-mode acceptEdits "${model_arg[@]}" ); then
     ok "LEARNINGS.md written"
   else
     warn "Claude analysis failed (artifacts still intact). If it's a model-access error,"
-    warn "re-run with a model you can use, e.g.: ./scripts/collect-run-data.zsh --model claude-opus-4-8"
+    warn "re-run with a model you can use, e.g.: ./scripts/collect-run-data.zsh --analyze --model claude-opus-4-8"
     warn "(or run 'claude' then '/model' to set a default)."
+  fi
+}
+
+handoff_to_current_session() {
+  ok "Synthesis handed off to your current Claude session."
+  step "In that session say:"
+  step "  'Read the run data in $OUTDIR_ABS (start with manifest.md + ANALYZE.md) and write LEARNINGS.md.'"
+  step "ANALYZE.md holds the full synthesis prompt (the 3-angle review)."
+}
+
+run_analysis() {
+  section "04" "SYNTHESISING LEARNINGS"
+  write_analyze_prompt
+  if (( DO_ANALYZE )); then
+    run_spawned_analysis
+  else
+    handoff_to_current_session
   fi
 }
 run_analysis
