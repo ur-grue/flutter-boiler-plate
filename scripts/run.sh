@@ -33,7 +33,7 @@ command -v flutter >/dev/null 2>&1 || {
 # brand-new DEFAULT counter app (and run that instead of yours).
 if [[ ! -f pubspec.yaml || ! -f lib/main.dart ]]; then
   echo "✗ This isn't your app's root (need pubspec.yaml + lib/main.dart here)."
-  echo "  cd into your generated app (e.g. mapp-schnitzl), then re-run."
+  echo "  cd into your app's project folder, then re-run."
   exit 1
 fi
 

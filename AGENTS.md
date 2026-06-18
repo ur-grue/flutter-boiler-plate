@@ -96,4 +96,6 @@ Point `Routes.notes` (the post-auth home) at your own first screen.
 
 ## Before you finish
 
-Run: `flutter analyze` (must be clean) and `flutter test`. Keep `dart format` happy.
+Run `dart fix --apply` (auto-fixes lints like `require_trailing_commas` — don't hand-fix
+them), then `flutter analyze` (must be clean), `flutter test`, and `dart format`. Commit
+your work in logical commits as you go — **never `git push`**.

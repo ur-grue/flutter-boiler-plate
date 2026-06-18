@@ -5,7 +5,11 @@ version: 0.1.0+1
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
-  flutter: ">=3.24.0"
+  # Floor matches the version CI pins and the template is verified against. Kept
+  # honest on purpose: an older-but-"in range" SDK used to compile and then break
+  # mid-build on changed APIs (e.g. CardThemeData). Now `flutter pub get` fails
+  # fast with a clear "upgrade Flutter" message instead.
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:

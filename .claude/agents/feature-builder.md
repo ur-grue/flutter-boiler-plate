@@ -17,4 +17,6 @@ The only other shared files are the ARB locales — APPEND keys only, never reor
 
 If a feature needs a capability not already in pubspec.yaml, consult docs/PACKAGES.md
 and follow its no-codegen / behind-a-services-interface rules; never introduce build_runner.
-Always finish with `flutter analyze` (must be clean). Report the files you touched.
+Always finish with `dart fix --apply` (auto-clears lints like require_trailing_commas —
+don't hand-fix them), then `flutter analyze` (must be clean) and `flutter test`. Report
+the files you touched.
