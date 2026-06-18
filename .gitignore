@@ -33,6 +33,9 @@ dart_define*.json
 # App Factory session tracking
 .appfactory_session
 
+# App Factory run-data harvests (scripts/collect-run-data.zsh) — may hold redacted logs
+/debug/
+
 # Claude Code
 .claude/settings.local.json
 CLAUDE.md.bak

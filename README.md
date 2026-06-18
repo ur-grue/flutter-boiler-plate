@@ -77,16 +77,79 @@ Extra native config is needed **only when you turn features on**: AdMob app id i
 `AndroidManifest.xml`/`Info.plist`, Android 13+ notification permission — see
 [docs/SECURITY.md](docs/SECURITY.md).
 
-## App Factory — automate the whole MVP (optional)
+## App Factory — from idea to the App Store (optional)
 
-For a hands-off flow, the **App Factory** turns *idea → tested MVP* into one command:
-clone → `./setup.zsh` (4 questions) → Claude builds the MVP via `/mvp` (spec → theme →
-screens → Supabase backend → paywall → legal + ASO → ship-check) → you test → `./ship.sh`.
-`setup.zsh` is the single entrypoint: it auto-installs missing tooling (gum, Flutter,
-Claude CLI) via **Homebrew** — asking first — then configures Claude Code, scaffolds, and
-builds, all in a cyberpunk TUI. Secrets are entered **once** in `~/.appfactory/secrets.env`.
-Requires **macOS + zsh**. (`./new-app.sh` still works — it forwards to `./setup.zsh`.)
-See **[appfactory/README.md](appfactory/README.md)**.
+The **App Factory** is the hands-off path: you describe an app in plain language and the
+boilerplate scaffolds, builds, tests, and gets it ready to ship — with you reviewing at
+two checkpoints. One command runs the whole thing: **`./setup.zsh`** (macOS + zsh;
+`./new-app.sh` still works and forwards to it).
+
+### The whole journey at a glance
+
+```
+  ┌─ Stage 0 ─┐   ┌─ Stage 1 ─┐   ┌─ Stage 2 ──┐   ┌─ Stage 3 ─┐   ┌─ Stage 4 ─┐
+   install &      describe your    Claude builds    you test &      you ship
+   add keys       app (4 Qs)       the MVP          approve         to the stores
+  └───────────┘   └───────────┘   └────────────┘   └───────────┘   └───────────┘
+   ./setup.zsh     ./setup.zsh      (automatic       flutter run     ./ship.sh
+   (once)          prompts          via /mvp)        + your eyes     → /release
+```
+
+### Step by step
+
+**Stage 0 — Install once (a few minutes).**
+```bash
+git clone https://github.com/<you>/<your-app>.git && cd <your-app>
+./setup.zsh
+```
+First run installs the toolchain (gum, Flutter, Claude CLI) and skills, then creates a
+**secret vault** at `~/.appfactory/secrets.env` and stops. Open that file, paste your keys
+(RevenueCat, Supabase, etc. — all optional; blanks just keep that feature mocked), and run
+`./setup.zsh` again. You only ever do this once per machine.
+
+**Stage 1 — Describe your app (30 seconds).** The script asks four questions: app name,
+bundle id (e.g. `com.you.app`), your one-line idea, and the App Store category.
+
+**Stage 2 — Claude builds the MVP (unattended).** `setup.zsh` hands off to **`/mvp`**, which
+runs end-to-end and **stops for your review**:
+`spec → theme → screens → Supabase backend → paywall → legal pages + ASO → ship-check`.
+When it finishes it prints exactly what changed and how to run the app.
+
+**Stage 3 — Test it, then approve (you, ~10 min).** This is the "what do I do after `/mvp`?"
+step:
+```bash
+flutter run --dart-define-from-file=dart_define.dev.json
+```
+Click through the app: onboarding → sign in (any valid email + password in mock mode) →
+your main flow → the paywall → settings. Anything wrong or missing? Just tell Claude in
+plain language (e.g. *"the home screen needs a search bar"*) or run **`/feature`** to add a
+screen — then re-run. Iterate here until you're happy. Verify it's still clean with
+`flutter analyze && flutter test`.
+
+**Stage 4 — Ship (you, when ready).**
+```bash
+./ship.sh        # runs /release: pre-flight checks + release build, resumes the same session
+```
+`/release` produces the store-ready build and a checklist. The last mile is manual and
+lives in **App Store Connect** / **Google Play Console**: signing, screenshots, the store
+listing (use the `/aso` output), and pressing *Submit*. See
+[docs/SECURITY.md](docs/SECURITY.md) for release hardening.
+
+### Handy commands during Stage 3 (inside `claude`)
+
+| Command | What it does |
+|---|---|
+| `/feature` | Add a screen/feature via the 11-step recipe |
+| `/theme` | Regenerate the Material 3 theme |
+| `/wire-paywall` | (Re)wire RevenueCat (entitlement `premium`) |
+| `/swap-backend supabase` | Replace mocks with a real Supabase backend |
+| `/aso` | Store keywords + description (App Store Optimization) |
+| `/legal` | Privacy policy + terms pages |
+| `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes |
+
+Secrets stay in `~/.appfactory/secrets.env` only (never committed); `setup.zsh` copies the
+client-safe ones into `dart_define.dev.json`. Full details:
+**[appfactory/README.md](appfactory/README.md)**.
 
 ## Configuration
 

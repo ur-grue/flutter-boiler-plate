@@ -1,0 +1,467 @@
+#!/usr/bin/env zsh
+# ──────────────────────────────────────────────────────────────────────────────
+# collect-run-data.zsh — APP FACTORY // post-build telemetry harvester
+#
+#   cd <your-generated-app> && ./scripts/collect-run-data.zsh
+#
+# After the App Factory (./setup.zsh → /mvp) generates a mobile app, this script
+# gathers everything needed to LEARN FROM and IMPROVE the generation:
+#   • the Claude Code transcript of the /mvp run
+#   • the spec + the interview inputs
+#   • static analysis + test results
+#   • git history, toolchain report, project file tree
+# …then REDACTS anything secret-looking, writes a manifest, and (optionally)
+# asks Claude — using THREE PARALLEL subagents — to synthesise a LEARNINGS.md
+# of concrete improvements to the factory. Finally it tars the lot for sharing.
+#
+# Run it from the ROOT of a generated app repo.
+#
+# Options:
+#   --no-analyze   collect only; skip the Claude analysis pass
+#   --out <dir>    output base dir (default: ./debug)
+#   -h | --help    this screen
+#
+# Safe by design: every collection step is non-fatal, and secrets are scrubbed
+# before anything is archived. Still — skim the output before you share it.
+# ──────────────────────────────────────────────────────────────────────────────
+set -uo pipefail   # NOT -e: individual collection steps are allowed to fail.
+
+# ── args ────────────────────────────────────────────────────────────────────────
+DO_ANALYZE=1
+OUT="./debug"
+HELP=0
+while (( $# )); do
+  case "$1" in
+    --no-analyze) DO_ANALYZE=0 ;;
+    --out)        shift; OUT="${1:-./debug}" ;;
+    -h|--help)    HELP=1 ;;
+    *)            print -u2 "unknown option: $1"; exit 1 ;;
+  esac
+  shift
+done
+
+# ── aesthetic (gum if present; plain print otherwise) ────────────────────────────
+PINK="212"; CYAN="51"; GREEN="82"; AMBER="214"; PURP="99"; GREY="245"
+HAS_GUM=0; command -v gum >/dev/null 2>&1 && HAS_GUM=1
+
+step() { (( HAS_GUM )) && gum log --level debug "$1" || print -P "%F{cyan}▸ $1%f"; }
+ok()   { (( HAS_GUM )) && gum log --level info  "$1" || print -P "%F{green}✓ $1%f"; }
+warn() { (( HAS_GUM )) && gum log --level warn  "$1" || print -P "%F{yellow}! $1%f"; }
+
+section() {
+  echo
+  if (( HAS_GUM )); then
+    gum style --foreground "$PURP" --bold \
+      --border-foreground "$PURP" --border normal --padding "0 1" "[ $1 ]  $2"
+  else
+    print -P "%F{magenta}── [ $1 ]  $2 ──%f"
+  fi
+}
+
+panel() {
+  if (( HAS_GUM )); then
+    gum style --foreground "$GREEN" --bold --border-foreground "$PURP" \
+      --border double --align left --width 72 --padding "1 3" "$@"
+  else
+    echo; for line in "$@"; do print -P "%F{green}$line%f"; done; echo
+  fi
+}
+
+usage() {
+  if (( HAS_GUM )); then
+    gum style --foreground "$PINK" --border-foreground "$PURP" \
+      --border double --align center --width 60 --padding "1 3" \
+      "APP FACTORY  //  collect-run-data" "harvest → redact → learn"
+    echo
+    gum style --foreground "$CYAN" --bold "USAGE"
+    gum style --foreground "$GREY"  "  ./scripts/collect-run-data.zsh [options]"
+    echo
+    gum style --foreground "$CYAN" --bold "OPTIONS"
+    gum style --foreground "$GREY" \
+      "  --no-analyze   collect only; skip the Claude analysis pass" \
+      "  --out <dir>    output base dir (default: ./debug)" \
+      "  -h --help      this screen"
+  else
+    print "APP FACTORY // collect-run-data — harvest, redact, learn"
+    print "USAGE:   ./scripts/collect-run-data.zsh [options]"
+    print "  --no-analyze   collect only; skip the Claude analysis pass"
+    print "  --out <dir>    output base dir (default: ./debug)"
+    print "  -h --help      this screen"
+  fi
+  exit 0
+}
+(( HELP )) && usage
+
+# ── output dir ───────────────────────────────────────────────────────────────────
+STAMP="$(date +%Y%m%d-%H%M%S)"
+OUTDIR="${OUT}/run-${STAMP}"
+mkdir -p "$OUTDIR" || { print -u2 "could not create $OUTDIR"; exit 1; }
+# Absolute path so Claude (run later) can read artifacts regardless of cwd.
+OUTDIR_ABS="${OUTDIR:A}"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 1 — COLLECT (each step non-fatal)
+# ──────────────────────────────────────────────────────────────────────────────
+section "01" "HARVESTING ARTIFACTS"
+
+# Append a footer recording an exit code, so the manifest can parse pass/fail.
+record_exit() { print "\n----\nexit_code: $1" >> "$2"; }
+
+collect_transcript() {
+  step "locating Claude Code transcript"
+  local note="$OUTDIR_ABS/transcript.MISSING.txt"
+  if [[ ! -f .appfactory_session ]]; then
+    print "No .appfactory_session file — cannot resolve the /mvp session id." > "$note"
+    warn "no .appfactory_session — transcript skipped"
+    return 0
+  fi
+  local session_id transcript
+  session_id="$(cat .appfactory_session 2>/dev/null | tr -d '[:space:]')"
+  if [[ -z "$session_id" ]]; then
+    print "Empty .appfactory_session — no session id recorded." > "$note"
+    warn "empty session id — transcript skipped"
+    return 0
+  fi
+  transcript="$(find "$HOME/.claude/projects" -name "${session_id}.jsonl" 2>/dev/null | head -1)"
+  if [[ -z "$transcript" ]]; then
+    # Fallback: newest jsonl under the projects tree.
+    transcript="$(find "$HOME/.claude/projects" -name '*.jsonl' 2>/dev/null \
+      | xargs -r ls -t 2>/dev/null | head -1)"
+    [[ -n "$transcript" ]] && warn "exact session not found — using newest transcript instead"
+  fi
+  if [[ -n "$transcript" && -f "$transcript" ]]; then
+    cp "$transcript" "$OUTDIR_ABS/transcript.jsonl" && ok "transcript → transcript.jsonl"
+  else
+    print "Session id was $session_id but no matching/any .jsonl was found under ~/.claude/projects." > "$note"
+    warn "transcript not located"
+  fi
+}
+
+collect_spec_and_inputs() {
+  step "copying spec + interview inputs"
+  local f
+  for f in APP_SPEC.md APPFACTORY_INPUTS.md; do
+    if [[ -f "$f" ]]; then cp "$f" "$OUTDIR_ABS/$f" && ok "$f"; else warn "$f not present"; fi
+  done
+}
+
+collect_flutter_checks() {
+  if ! command -v flutter >/dev/null 2>&1; then
+    print "flutter not on PATH — analyze + test skipped." > "$OUTDIR_ABS/flutter.MISSING.txt"
+    warn "flutter missing — analyze/test skipped"
+    return 0
+  fi
+  step "flutter analyze --fatal-warnings"
+  local analyze="$OUTDIR_ABS/analyze.txt"
+  flutter analyze --fatal-warnings > "$analyze" 2>&1
+  record_exit "$?" "$analyze"; ok "analyze.txt"
+
+  step "flutter test"
+  local test_out="$OUTDIR_ABS/test.txt"
+  flutter test > "$test_out" 2>&1
+  record_exit "$?" "$test_out"; ok "test.txt"
+}
+
+collect_git() {
+  if ! command -v git >/dev/null 2>&1 || [[ ! -d .git ]]; then
+    print "git unavailable or not a repo — git history skipped." > "$OUTDIR_ABS/git.MISSING.txt"
+    warn "git unavailable — history skipped"
+    return 0
+  fi
+  step "capturing git history"
+  git log --oneline -30 > "$OUTDIR_ABS/git-log.txt" 2>&1 && ok "git-log.txt"
+  git diff --stat HEAD~30..HEAD > "$OUTDIR_ABS/git-diffstat.txt" 2>/dev/null \
+    || git diff --stat > "$OUTDIR_ABS/git-diffstat.txt" 2>&1
+  ok "git-diffstat.txt"
+}
+
+collect_toolchain() {
+  if ! command -v flutter >/dev/null 2>&1; then
+    print "flutter not on PATH — flutter doctor skipped." > "$OUTDIR_ABS/flutter-doctor.MISSING.txt"
+    warn "flutter missing — doctor skipped"
+    return 0
+  fi
+  step "flutter doctor -v"
+  flutter doctor -v > "$OUTDIR_ABS/flutter-doctor.txt" 2>&1 && ok "flutter-doctor.txt"
+}
+
+collect_project_shape() {
+  step "capturing project shape"
+  [[ -f pubspec.yaml ]] && { cp pubspec.yaml "$OUTDIR_ABS/pubspec.yaml"; ok "pubspec.yaml"; } \
+    || warn "pubspec.yaml not present"
+  if [[ -d lib ]]; then
+    find lib -type f | sort > "$OUTDIR_ABS/file-tree.txt" && ok "file-tree.txt"
+  else
+    print "No lib/ directory found." > "$OUTDIR_ABS/file-tree.txt"
+    warn "lib/ missing — empty file-tree"
+  fi
+}
+
+collect_dart_define() {
+  if [[ -f dart_define.dev.json ]]; then
+    step "copying dart_define.dev.json (will be redacted)"
+    cp dart_define.dev.json "$OUTDIR_ABS/dart_define.dev.json" && ok "dart_define.dev.json"
+  else
+    warn "dart_define.dev.json not present"
+  fi
+}
+
+collect_transcript
+collect_spec_and_inputs
+collect_flutter_checks
+collect_git
+collect_toolchain
+collect_project_shape
+collect_dart_define
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 2 — REDACT (critical: this data may be shared)
+# ──────────────────────────────────────────────────────────────────────────────
+section "02" "SCRUBBING SECRETS"
+
+SECRETS_ENV="$HOME/.appfactory/secrets.env"
+
+redact_with_python() {
+  step "redacting via python3"
+  SECRETS_ENV="$SECRETS_ENV" python3 - "$OUTDIR_ABS" <<'PY'
+import os, re, sys, glob
+
+outdir = sys.argv[1]
+MASK = "***REDACTED***"
+SENSITIVE = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|SUPABASE|REVENUECAT|ADMOB|API", re.I)
+
+# Long opaque tokens and JWT-like blobs anywhere in a file.
+JWT = re.compile(r"eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+")
+OPAQUE = re.compile(r"[A-Za-z0-9_\-]{24,}")
+
+# JSON-ish:  "KEY": "value"
+JSON_KV = re.compile(r'("([^"]*)"\s*:\s*)"([^"]*)"')
+# env-ish:   KEY="value" | KEY=value
+ENV_KV = re.compile(r'^(\s*([A-Za-z0-9_]+)\s*=\s*)(.*)$')
+
+def mask_structurally(text):
+    def json_sub(m):
+        prefix, key, _val = m.group(1), m.group(2), m.group(3)
+        return f'{prefix}"{MASK}"' if SENSITIVE.search(key) else m.group(0)
+    text = JSON_KV.sub(json_sub, text)
+
+    lines = []
+    for line in text.split("\n"):
+        m = ENV_KV.match(line)
+        if m and SENSITIVE.search(m.group(2)):
+            lines.append(f"{m.group(1)}{MASK}")
+        else:
+            lines.append(line)
+    return "\n".join(lines)
+
+def mask_opaque(text):
+    text = JWT.sub(MASK, text)
+    text = OPAQUE.sub(MASK, text)
+    return text
+
+# Exact values leaked from the central vault — scrub them everywhere.
+leaked = []
+secrets_path = os.environ.get("SECRETS_ENV", "")
+if secrets_path and os.path.isfile(secrets_path):
+    for raw in open(secrets_path, encoding="utf-8", errors="replace"):
+        raw = raw.strip()
+        if not raw or raw.startswith("#") or "=" not in raw:
+            continue
+        val = raw.split("=", 1)[1].strip().strip('"').strip("'")
+        if val:
+            leaked.append(val)
+leaked.sort(key=len, reverse=True)  # longest first to avoid partial overlaps
+
+def scrub_leaked(text):
+    for val in leaked:
+        if val and val in text:
+            text = text.replace(val, MASK)
+    return text
+
+for path in glob.glob(os.path.join(outdir, "*")):
+    if not os.path.isfile(path):
+        continue
+    base = os.path.basename(path)
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except Exception:
+        continue
+
+    text = mask_structurally(text)
+    if base == "transcript.jsonl":
+        text = mask_opaque(text)
+    text = scrub_leaked(text)
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+print("redaction complete")
+PY
+}
+
+redact_with_fallback() {
+  step "redacting via sed/perl (python3 unavailable)"
+  local file
+  for file in "$OUTDIR_ABS"/*(.N); do
+    # Structural masking: any KEY=value / "KEY":"value" with a sensitive name.
+    if command -v perl >/dev/null 2>&1; then
+      perl -i -pe '
+        s/("[^"]*(?i:KEY|TOKEN|SECRET|PASSWORD|SUPABASE|REVENUECAT|ADMOB|API)[^"]*"\s*:\s*)"[^"]*"/$1"***REDACTED***"/g;
+        s/^(\s*[A-Za-z0-9_]*(?i:KEY|TOKEN|SECRET|PASSWORD|SUPABASE|REVENUECAT|ADMOB|API)[A-Za-z0-9_]*\s*=\s*).*$/$1***REDACTED***/g;
+      ' "$file" 2>/dev/null
+      if [[ "${file:t}" == "transcript.jsonl" ]]; then
+        perl -i -pe '
+          s/eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+/***REDACTED***/g;
+          s/[A-Za-z0-9_\-]{24,}/***REDACTED***/g;
+        ' "$file" 2>/dev/null
+      fi
+    else
+      sed -i.bak -E \
+        -e 's/("[^"]*([Kk][Ee][Yy]|TOKEN|SECRET|PASSWORD|SUPABASE|REVENUECAT|ADMOB|API)[^"]*"[[:space:]]*:[[:space:]]*)"[^"]*"/\1"***REDACTED***"/g' \
+        "$file" 2>/dev/null
+      rm -f "${file}.bak" 2>/dev/null
+    fi
+  done
+
+  # Scrub exact leaked vault values everywhere.
+  if [[ -f "$SECRETS_ENV" ]]; then
+    while IFS= read -r raw; do
+      [[ -z "$raw" || "$raw" == \#* || "$raw" != *=* ]] && continue
+      local val="${raw#*=}"
+      val="${val#\"}"; val="${val%\"}"; val="${val#\'}"; val="${val%\'}"
+      [[ -z "$val" ]] && continue
+      for file in "$OUTDIR_ABS"/*(.N); do
+        if command -v perl >/dev/null 2>&1; then
+          VAL="$val" perl -i -pe 'BEGIN{$v=quotemeta($ENV{VAL})} s/$v/***REDACTED***/g' "$file" 2>/dev/null
+        fi
+      done
+    done < "$SECRETS_ENV"
+  fi
+}
+
+if command -v python3 >/dev/null 2>&1; then
+  redact_with_python && ok "secrets scrubbed"
+else
+  redact_with_fallback && ok "secrets scrubbed (fallback)"
+fi
+warn "redaction is best-effort — always skim before sharing"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 3 — MANIFEST
+# ──────────────────────────────────────────────────────────────────────────────
+section "03" "WRITING MANIFEST"
+
+# Parse "exit_code: N" footer → human pass/fail.
+exit_summary() {
+  local file="$1"
+  [[ -f "$file" ]] || { print "not collected"; return; }
+  local code
+  code="$(grep -E '^exit_code: ' "$file" 2>/dev/null | tail -1 | grep -oE '[0-9]+' | head -1)"
+  [[ -z "$code" ]] && { print "no exit code recorded"; return; }
+  (( code == 0 )) && print "PASS (exit 0)" || print "FAIL (exit $code)"
+}
+
+describe() {
+  local base="$1"
+  case "$base" in
+    transcript.jsonl)        print "Claude Code transcript of the /mvp build (redacted)" ;;
+    transcript.MISSING.txt)  print "note: transcript could not be located" ;;
+    APP_SPEC.md)             print "the generated app spec" ;;
+    APPFACTORY_INPUTS.md)    print "the interview inputs that seeded the build" ;;
+    analyze.txt)             print "flutter analyze --fatal-warnings — $(exit_summary "$OUTDIR_ABS/analyze.txt")" ;;
+    test.txt)                print "flutter test — $(exit_summary "$OUTDIR_ABS/test.txt")" ;;
+    git-log.txt)             print "last 30 commits (oneline)" ;;
+    git-diffstat.txt)        print "diffstat across the build's commits" ;;
+    flutter-doctor.txt)      print "flutter doctor -v toolchain report" ;;
+    pubspec.yaml)            print "project manifest / dependencies" ;;
+    file-tree.txt)           print "sorted list of files under lib/" ;;
+    dart_define.dev.json)    print "client config (redacted)" ;;
+    flutter.MISSING.txt|flutter-doctor.MISSING.txt) print "note: flutter not on PATH" ;;
+    git.MISSING.txt)         print "note: git unavailable" ;;
+    *)                       print "collected artifact" ;;
+  esac
+}
+
+MANIFEST="$OUTDIR_ABS/manifest.md"
+{
+  print "# Run data manifest"
+  print
+  print "- Collected: $(date)"
+  print "- Output dir: $OUTDIR_ABS"
+  print
+  print "| File | What it is |"
+  print "|------|------------|"
+} > "$MANIFEST"
+
+for f in "$OUTDIR_ABS"/*(.N); do
+  base="${f:t}"
+  [[ "$base" == "manifest.md" ]] && continue
+  print "| \`$base\` | $(describe "$base") |" >> "$MANIFEST"
+done
+ok "manifest.md"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 4 — OPTIONAL CLAUDE ANALYSIS (3 parallel subagents)
+# ──────────────────────────────────────────────────────────────────────────────
+run_analysis() {
+  section "04" "SYNTHESISING LEARNINGS (AI)"
+  if (( ! DO_ANALYZE )); then
+    step "--no-analyze set — skipping the Claude analysis pass"
+    return 0
+  fi
+  if ! command -v claude >/dev/null 2>&1; then
+    warn "claude CLI not found — skipping analysis (collection is complete)"
+    return 0
+  fi
+
+  local prompt
+  prompt="You are reviewing the artifacts of an automated 'App Factory' build that
+generated a Flutter mobile app. All artifacts are in the current directory.
+
+LAUNCH THREE SUBAGENTS IN PARALLEL using your Task tool — run all three at once,
+do not run them sequentially. Each subagent reads files from this directory:
+
+  (a) a 'code-quality' subagent → reads analyze.txt + test.txt + file-tree.txt →
+      lists concrete lint, test, and architecture debt the generator left behind.
+  (b) a 'process' subagent → reads transcript.jsonl → finds wasted turns,
+      mis-ordered or repeated steps, and where the orchestrator stalled.
+  (c) a 'fidelity' subagent → reads APP_SPEC.md + APPFACTORY_INPUTS.md +
+      git-diffstat.txt + file-tree.txt → judges how faithfully the build matched
+      the spec and what was missed.
+
+When all three subagents return, synthesise their findings into a file named
+LEARNINGS.md in this directory. LEARNINGS.md must contain a prioritized,
+actionable list of improvements to the App Factory itself — specifically to
+setup.zsh, mvp.md, and the agent/skill definitions. Lead with the highest-impact
+fixes. Be concrete; cite the artifact that motivated each recommendation."
+
+  step "launching Claude with 3 parallel subagents (non-fatal)"
+  ( cd "$OUTDIR_ABS" && claude -p "$prompt" --permission-mode acceptEdits ) \
+    && ok "LEARNINGS.md written" \
+    || warn "Claude analysis returned nonzero — artifacts are still intact"
+}
+run_analysis
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 5 — ARCHIVE + FINISH
+# ──────────────────────────────────────────────────────────────────────────────
+section "05" "ARCHIVING"
+
+PARENT="${OUTDIR_ABS:h}"
+RUN_BASE="${OUTDIR_ABS:t}"
+TARBALL="${OUTDIR_ABS}.tar.gz"
+if tar -czf "$TARBALL" -C "$PARENT" "$RUN_BASE" 2>/dev/null; then
+  ok "archive → $TARBALL"
+else
+  warn "tar failed — the run dir is still available"
+  TARBALL="(not created)"
+fi
+
+panel \
+  "◢◤  RUN DATA COLLECTED  ◥◣" \
+  "" \
+  "dir:     $OUTDIR_ABS" \
+  "tarball: $TARBALL" \
+  "" \
+  "⚠ skim for secrets before sharing — redaction is best-effort."
+echo
