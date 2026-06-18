@@ -33,4 +33,7 @@ Never fabricate keyword volumes/difficulty from training knowledge.
    difficulty + traffic and source tag.
 3. **Copy-paste metadata** — iOS (name 30 / subtitle 30 / keywords 100) and Google Play
    (title 30 / short 80 / long 4000), localized `de` / `es` / `ar`.
-4. **Screenshot captions** (OCR-indexed) to build in Claude Design.
+4. **Screenshot set** — use `screenshot-optimization` + the competitor screenshot analysis from
+   MARKET.md §2 (their hook + palette): design our sequence so **screenshot 1 leads with a stronger
+   hook** than the competitors, in our theme palette. Output OCR-indexed captions (keyword-aware)
+   to build in Claude Design.
