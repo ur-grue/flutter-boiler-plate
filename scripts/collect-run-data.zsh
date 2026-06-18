@@ -19,6 +19,7 @@
 # Options:
 #   --no-analyze   collect only; skip the Claude analysis pass
 #   --out <dir>    output base dir (default: ./debug)
+#   --model <id>   model for the analysis pass (e.g. claude-opus-4-8)
 #   -h | --help    this screen
 #
 # Safe by design: every collection step is non-fatal, and secrets are scrubbed
@@ -29,11 +30,13 @@ set -uo pipefail   # NOT -e: individual collection steps are allowed to fail.
 # ── args ────────────────────────────────────────────────────────────────────────
 DO_ANALYZE=1
 OUT="./debug"
+MODEL=""
 HELP=0
 while (( $# )); do
   case "$1" in
     --no-analyze) DO_ANALYZE=0 ;;
     --out)        shift; OUT="${1:-./debug}" ;;
+    --model)      shift; MODEL="${1:-}" ;;
     -h|--help)    HELP=1 ;;
     *)            print -u2 "unknown option: $1"; exit 1 ;;
   esac
@@ -80,13 +83,15 @@ usage() {
     gum style --foreground "$GREY" \
       "  --no-analyze   collect only; skip the Claude analysis pass" \
       "  --out <dir>    output base dir (default: ./debug)" \
+      "  --model <id>   model for the analysis pass (e.g. claude-opus-4-8)" \
       "  -h --help      this screen"
   else
-    print "APP FACTORY // collect-run-data — harvest, redact, learn"
-    print "USAGE:   ./scripts/collect-run-data.zsh [options]"
-    print "  --no-analyze   collect only; skip the Claude analysis pass"
-    print "  --out <dir>    output base dir (default: ./debug)"
-    print "  -h --help      this screen"
+    print -r -- "APP FACTORY // collect-run-data — harvest, redact, learn"
+    print -r -- "USAGE:   ./scripts/collect-run-data.zsh [options]"
+    print -r -- "  --no-analyze   collect only; skip the Claude analysis pass"
+    print -r -- "  --out <dir>    output base dir (default: ./debug)"
+    print -r -- "  --model <id>   model for the analysis pass (e.g. claude-opus-4-8)"
+    print -r -- "  -h --help      this screen"
   fi
   exit 0
 }
@@ -110,29 +115,34 @@ record_exit() { print "\n----\nexit_code: $1" >> "$2"; }
 collect_transcript() {
   step "locating Claude Code transcript"
   local note="$OUTDIR_ABS/transcript.MISSING.txt"
-  if [[ ! -f .appfactory_session ]]; then
-    print "No .appfactory_session file — cannot resolve the /mvp session id." > "$note"
-    warn "no .appfactory_session — transcript skipped"
-    return 0
+  local projdir="$HOME/.claude/projects"
+  local session_id="" transcript=""
+
+  # 1. Exact match via .appfactory_session, if present.
+  if [[ -f .appfactory_session ]]; then
+    session_id="$(cat .appfactory_session 2>/dev/null | tr -d '[:space:]')"
+    [[ -n "$session_id" ]] \
+      && transcript="$(find "$projdir" -name "${session_id}.jsonl" 2>/dev/null | head -1)"
   fi
-  local session_id transcript
-  session_id="$(cat .appfactory_session 2>/dev/null | tr -d '[:space:]')"
-  if [[ -z "$session_id" ]]; then
-    print "Empty .appfactory_session — no session id recorded." > "$note"
-    warn "empty session id — transcript skipped"
-    return 0
-  fi
-  transcript="$(find "$HOME/.claude/projects" -name "${session_id}.jsonl" 2>/dev/null | head -1)"
+
+  # 2. Fallback (no session file, or no match): newest transcript for THIS project.
+  #    Claude Code names the project folder after the cwd path, so the repo's
+  #    basename appears in it — prefer that folder, else the newest jsonl anywhere.
   if [[ -z "$transcript" ]]; then
-    # Fallback: newest jsonl under the projects tree.
-    transcript="$(find "$HOME/.claude/projects" -name '*.jsonl' 2>/dev/null \
-      | xargs -r ls -t 2>/dev/null | head -1)"
-    [[ -n "$transcript" ]] && warn "exact session not found — using newest transcript instead"
+    local projfolder
+    projfolder="$(find "$projdir" -maxdepth 1 -type d -name "*${PWD:t}*" 2>/dev/null | head -1)"
+    [[ -n "$projfolder" ]] \
+      && transcript="$(find "$projfolder" -name '*.jsonl' 2>/dev/null | xargs -r ls -t 2>/dev/null | head -1)"
+    [[ -z "$transcript" ]] \
+      && transcript="$(find "$projdir" -name '*.jsonl' 2>/dev/null | xargs -r ls -t 2>/dev/null | head -1)"
+    [[ -n "$transcript" ]] \
+      && warn "no session id — using newest transcript for this project (verify it's the right run)"
   fi
+
   if [[ -n "$transcript" && -f "$transcript" ]]; then
     cp "$transcript" "$OUTDIR_ABS/transcript.jsonl" && ok "transcript → transcript.jsonl"
   else
-    print "Session id was $session_id but no matching/any .jsonl was found under ~/.claude/projects." > "$note"
+    print -r -- "No transcript found: no .appfactory_session and no .jsonl under ~/.claude/projects." > "$note"
     warn "transcript not located"
   fi
 }
@@ -205,6 +215,29 @@ collect_dart_define() {
     warn "dart_define.dev.json not present"
   fi
 }
+
+# Probe common SDK locations so analyze/test/doctor run even when Flutter is
+# installed but not exported on PATH (mirrors setup.zsh / scripts/doctor.sh).
+locate_flutter() {
+  command -v flutter >/dev/null 2>&1 && return 0
+  local cand
+  for cand in \
+    "$HOME/development/flutter/bin" \
+    "$HOME/flutter/bin" \
+    "$HOME/fvm/default/bin" \
+    "$PWD/.fvm/flutter_sdk/bin" \
+    "$HOME/.puro/envs/default/flutter/bin" \
+    "/opt/homebrew/bin" \
+    "/usr/local/bin"; do
+    if [[ -x "$cand/flutter" ]]; then
+      export PATH="$cand:$PATH"
+      step "found Flutter at $cand"
+      return 0
+    fi
+  done
+  return 1
+}
+locate_flutter
 
 collect_transcript
 collect_spec_and_inputs
@@ -384,13 +417,13 @@ describe() {
 
 MANIFEST="$OUTDIR_ABS/manifest.md"
 {
-  print "# Run data manifest"
+  print -r -- "# Run data manifest"
   print
-  print "- Collected: $(date)"
-  print "- Output dir: $OUTDIR_ABS"
+  print -r -- "- Collected: $(date)"
+  print -r -- "- Output dir: $OUTDIR_ABS"
   print
-  print "| File | What it is |"
-  print "|------|------------|"
+  print -r -- "| File | What it is |"
+  print -r -- "|------|------------|"
 } > "$MANIFEST"
 
 for f in "$OUTDIR_ABS"/*(.N); do
@@ -436,9 +469,15 @@ setup.zsh, mvp.md, and the agent/skill definitions. Lead with the highest-impact
 fixes. Be concrete; cite the artifact that motivated each recommendation."
 
   step "launching Claude with 3 parallel subagents (non-fatal)"
-  ( cd "$OUTDIR_ABS" && claude -p "$prompt" --permission-mode acceptEdits ) \
-    && ok "LEARNINGS.md written" \
-    || warn "Claude analysis returned nonzero — artifacts are still intact"
+  local model_arg=()
+  [[ -n "$MODEL" ]] && model_arg=(--model "$MODEL")
+  if ( cd "$OUTDIR_ABS" && claude -p "$prompt" --permission-mode acceptEdits "${model_arg[@]}" ); then
+    ok "LEARNINGS.md written"
+  else
+    warn "Claude analysis failed (artifacts still intact). If it's a model-access error,"
+    warn "re-run with a model you can use, e.g.: ./scripts/collect-run-data.zsh --model claude-opus-4-8"
+    warn "(or run 'claude' then '/model' to set a default)."
+  fi
 }
 run_analysis
 
