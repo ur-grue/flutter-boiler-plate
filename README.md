@@ -22,8 +22,9 @@ API keys** out of the box (mock/no-op service impls you swap for real backends l
 
 ## Prerequisites
 
-- **Flutter** ≥ 3.24 (stable) — includes the Dart SDK ≥ 3.4. The exact minimums are
-  enforced by `pubspec.yaml`'s `environment:` block (`flutter pub get` fails if too old).
+- **Flutter** ≥ 3.44 (stable) — includes the Dart SDK. The exact minimum is
+  enforced by `pubspec.yaml`'s `environment:` block (`flutter pub get` fails fast if too
+  old), so a stale SDK is caught up front instead of breaking mid-build.
 - A target toolchain + device for `flutter run`: **Android** (Android Studio/SDK + emulator
   or device), **iOS** (macOS + Xcode + simulator), or **web** (`-d chrome`).
 - Unit/widget tests (`flutter test`) need **only** the Flutter SDK — no device.
