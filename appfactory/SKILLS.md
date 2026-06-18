@@ -66,29 +66,74 @@ in the app** and never goes into `dart_define`.
 - **Purpose:** design polish / anti-slop pass.
 - **Consumed by:** **/mvp** polish pass.
 
-### aso-skills  (the ASO DATA ENGINE)
+### mcp-appstore  (the KEYLESS LIVE-DATA engine)
+- **Source:** `appreply-co/mcp-appstore` (MCP server; Node) — pin the cloned commit.
+- **Install:** `git clone --depth 1 https://github.com/appreply-co/mcp-appstore.git
+  ~/.appfactory/mcp-appstore && npm install --prefix ~/.appfactory/mcp-appstore`, then
+  `claude mcp add --scope user --transport stdio mcp-appstore -- node ~/.appfactory/mcp-appstore/server.js`.
+  (No npx one-liner exists; needs Node 18+.)
+- **Keyless?** Yes — scrapes the public App Store + Play Store; no key, no paid account.
+- **Purpose:** the **live data source**. 17 tools incl. `get_keyword_scores` (real difficulty +
+  traffic), `analyze_top_keywords`, `suggest_keywords_by_competition/_by_search/_by_similarity`,
+  `search_app`, `get_similar_apps`, `get_pricing_details`, `analyze_reviews` — iOS + Android.
+- **Consumed by:** **/aso** + **/validate** (real keyword + competitor data).
+
+### aso-skills  (ASO METHOD / ROUTING)
 - **Source:** `eronred/aso-skills` (`skills` CLI; MIT) — pin via the version recorded at
   install time (see "Pinning" below).
 - **Install:** `npx -y skills add eronred/aso-skills --agent claude-code`
-- **Keyless?** Yes by default (general ASO frameworks). **Optional key:** `APPEEKY_API_KEY`
-  (https://appeeky.com) unlocks live App Store data. Author-time only; never shipped.
-- **Purpose:** the ASO data engine — ~40 skills including `aso-router`, `keyword-research`,
+- **Keyless?** Yes, but keyless = **methodology only**. Its live-data mode needs a paid
+  **Appeeky** key (`APPEEKY_API_KEY`, https://appeeky.com); **without it the skill falls back to
+  the model's own knowledge** — which is why we pair it with `mcp-appstore` for real data.
+  Appeeky is author-time only; never shipped.
+- **Purpose:** ASO frameworks + routing — ~40 skills incl. `aso-router`, `keyword-research`,
   `metadata-optimization`, `competitor-analysis`, `aso-audit`, `monetization-strategy`,
   `paywall-optimization`, `screenshot-optimization`, `app-icon-optimization`,
   `app-analytics`, `category-positioning`, `app-rejection-recovery`.
-- **Consumed by:** **/aso** (engine), **/validate** + **/spec** (market intel),
-  **/wire-paywall** (monetization).
+- **Consumed by:** **/aso** (interprets mcp-appstore data), **/validate** + **/spec** (market
+  intel), **/wire-paywall** (monetization).
 
 ---
 
 ## Division of labor
 
-- **aso-skills** owns ASO **mechanics / data + routing** — keyword research, metadata,
-  competitor and market intel, monetization/paywall mechanics, audits.
+- **mcp-appstore** owns **live data** — real keyword difficulty/traffic, competitor listings,
+  pricing, reviews. This is where every keyword number must come from.
+- **aso-skills** owns ASO **method / routing** — how to interpret the data into keyword
+  strategy, metadata, audits, monetization mechanics (keyless = method only, no live data).
 - **marketing-skills** owns **brand voice / launch copy** — positioning and growth copy.
 
-Keep these lanes separate to avoid overlap: route ASO mechanics through `aso-skills`,
-route voice/launch copy through `marketing-skills`.
+Keep these lanes separate: pull data with `mcp-appstore`, interpret it with `aso-skills`,
+write voice/launch copy with `marketing-skills`. Never source keyword numbers from model memory.
+
+### aso-skills → command map (which of the 40 skills we wire, and where)
+
+Two-touchpoint workflow: **/market** fetches live data ONCE up front → writes `MARKET.md`
+(competitors, differentiation, tiered keywords w/ difficulty+traffic, data-driven pricing);
+/spec, /wire-paywall, and /aso READ that cache (no re-fetch — respects Appeeky free-tier). Store-
+ready ASO is the tail; /growth is post-launch.
+
+Build-time (inside `/mvp`):
+- **/market (Step 1):** `aso-router`, `app-marketing-context`, `competitor-analysis`,
+  `market-pulse`, `market-movers`, `category-positioning`, `keyword-research`,
+  `monetization-strategy` + all relevant `mcp-appstore` tools. Writes `MARKET.md`.
+- **/spec:** reads MARKET.md; refines with `app-marketing-context`, `category-positioning`,
+  `monetization-strategy`, `onboarding-optimization`, `retention-optimization`.
+- **/validate:** thin wrapper over **/market** + a GO/NO-GO verdict (standalone, not in /mvp).
+- **/aso:** `keyword-research`, `metadata-optimization`, `competitor-analysis`, `android-aso`,
+  `seasonal-aso`, `screenshot-optimization`, `localization`, `category-positioning`.
+- **/theme:** `app-icon-optimization`.
+- **/wire-paywall:** `monetization-strategy`, `paywall-optimization`, `subscription-lifecycle`,
+  `rating-prompt-strategy`.
+- **/ship-check:** `aso-audit`, `app-rejection-recovery`.
+
+Post-launch (in **/growth**, NOT in `/mvp` — they need a live app + real data/budget):
+`app-launch`, `apple-search-ads`, `ua-campaign`, `press-and-pr`, `creator-ugc-marketing`,
+`referral-program`, `web-to-app-funnel`, `app-store-featured`, `in-app-events`, `app-clips`,
+`ab-test-store-listing`, `custom-product-pages`, `app-preview-video`, `review-management`,
+`app-analytics`, `attribution-setup`, `asc-metrics`, `crash-analytics`, `competitor-tracking`.
+
+(`aso-router` + `app-marketing-context` are the Foundation/entry skills used across all of the above.)
 
 **Design lane (decide → refine → QA):** `ui-ux-pro-max` *decides* the design system up
 front (/theme); `impeccable` *refines* the built UI (polish / anti-slop); gstack

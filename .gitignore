@@ -56,3 +56,10 @@ ios/Flutter/Flutter.podspec
 android/.gradle/
 android/local.properties
 android/key.properties
+
+# ---- fastlane (artifacts + credentials; metadata/ + screenshots/ ARE committed) ----
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output/
+*.p8
+*.mobileprovision

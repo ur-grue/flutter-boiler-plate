@@ -69,4 +69,26 @@ if [[ -f ios/Runner.xcodeproj/project.pbxproj ]]; then
   sedi "s|PRODUCT_BUNDLE_IDENTIFIER = [^;]*;|PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};|g" ios/Runner.xcodeproj/project.pbxproj || true
 fi
 
+# 5. Home-screen display name (else the app shows "Flutter Boilerplate" on the device).
+#    iOS: CFBundleDisplayName + CFBundleName in Info.plist. Android: android:label in the manifest.
+PLIST="ios/Runner/Info.plist"
+if [[ -f "$PLIST" ]]; then
+  if [[ -x /usr/libexec/PlistBuddy ]]; then
+    for k in CFBundleDisplayName CFBundleName; do
+      /usr/libexec/PlistBuddy -c "Set :$k ${APP_NAME}" "$PLIST" >/dev/null 2>&1 \
+        || /usr/libexec/PlistBuddy -c "Add :$k string ${APP_NAME}" "$PLIST" >/dev/null 2>&1 || true
+    done
+  else
+    # Replace the <string> immediately after each key (portable awk; no PlistBuddy on Linux/CI).
+    for k in CFBundleDisplayName CFBundleName; do
+      tmp="$(mktemp)"
+      awk -v key="$k" -v val="${APP_NAME}" '
+        prev ~ ("<key>" key "</key>") { sub(/<string>[^<]*<\/string>/, "<string>" val "</string>") }
+        { print; prev=$0 }' "$PLIST" > "$tmp" && mv "$tmp" "$PLIST" || true
+    done
+  fi
+fi
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+[[ -f "$MANIFEST" ]] && sedi "s|android:label=\"[^\"]*\"|android:label=\"${APP_NAME}\"|" "$MANIFEST" || true
+
 echo "✓ Done. Now run: flutter pub get && flutter gen-l10n"

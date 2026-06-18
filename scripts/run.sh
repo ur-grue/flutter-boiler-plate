@@ -4,11 +4,15 @@
 #
 #   bash scripts/run.sh                  # set up, then let Flutter pick a device
 #   bash scripts/run.sh "iPhone 15"      # target a device by name or id (see `flutter devices`)
-#   bash scripts/run.sh chrome           # web, macos, an emulator id, a UUID, …
+#   bash scripts/run.sh emulator-5554    # an Android emulator id, a UUID, …
 #
-# On first run it generates the native folders (`flutter create .` + plugin-ready
-# patches), fetches deps, regenerates localizations, and passes
+# On first run it generates the native folders (`flutter create --platforms=android,ios .`
+# + plugin-ready patches), fetches deps, regenerates localizations, and passes
 # `dart_define.dev.json` if present. Runs keyless (mock data) by default.
+#
+# This is a MOBILE factory: it scaffolds iOS + Android only. On macOS, if no device
+# is connected it boots an iOS simulator for you. Otherwise (or for Android) boot one
+# first (Xcode ▸ Open Simulator, or Android Studio ▸ Device Manager).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -52,10 +56,12 @@ if [[ -n "$nested_pubspecs" ]]; then
   exit 1
 fi
 
-# 1. Native folders (first run only). Won't overwrite existing lib/ code.
+# 1. Native folders (first run only). iOS + Android only — this is a mobile
+#    factory, and scaffolding desktop/web adds plugins (and build failures) you
+#    don't want. Won't overwrite existing lib/ code.
 if [[ ! -d ios && ! -d android ]]; then
-  echo "▸ First run: generating native folders (flutter create .)"
-  flutter create . >/dev/null
+  echo "▸ First run: generating native folders (flutter create --platforms=android,ios .)"
+  flutter create --platforms=android,ios . >/dev/null
   [[ -f scripts/postcreate.sh ]] && bash scripts/postcreate.sh
 fi
 
@@ -63,9 +69,34 @@ fi
 echo "▸ flutter pub get";  flutter pub get >/dev/null
 echo "▸ flutter gen-l10n"; flutter gen-l10n >/dev/null 2>&1 || true
 
-# 3. Show what's connected so you can pick.
+# 3. Make sure SOMETHING mobile is running. The #1 "no supported devices" cause is
+#    simply not having booted a simulator. On macOS we boot one for you (the first
+#    available iPhone). Everything here is non-fatal: worst case it does nothing and
+#    we fall through to the manual hint below — it can never make things worse.
+has_mobile() { flutter devices 2>/dev/null | grep -qiE '(ios|android)'; }
+
+if ! has_mobile && [[ "$(uname)" == "Darwin" ]] && command -v xcrun >/dev/null 2>&1; then
+  udid="$(xcrun simctl list devices available 2>/dev/null \
+            | grep -E 'iPhone' | head -1 \
+            | grep -oE '[0-9A-Fa-f]{8}-([0-9A-Fa-f]{4}-){3}[0-9A-Fa-f]{12}')"
+  if [[ -n "$udid" ]]; then
+    echo "▸ No device connected — booting an iOS simulator…"
+    xcrun simctl bootstatus "$udid" -b >/dev/null 2>&1 || true  # boots if needed, then waits
+    open -a Simulator >/dev/null 2>&1 || true
+  fi
+fi
+
+# Show what's connected so you can pick.
 echo "▸ Available devices:"
 flutter devices 2>/dev/null | sed 's/^/    /'
+
+# If still nothing mobile (no macOS auto-boot, or an Android-only setup), a bare
+# `flutter run` has no valid target — we don't scaffold desktop/web. Point the way.
+if ! has_mobile; then
+  echo "  ! No iOS/Android device detected. Boot one first:"
+  echo "      iOS:     open -a Simulator        (then wait for it to finish booting)"
+  echo "      Android: start an emulator in Android Studio ▸ Device Manager"
+fi
 
 # 4. Build the argv safely (handles device names with spaces; works on bash 3.2):
 #    `flutter run [-d <target>] [--dart-define-from-file=…]`

@@ -1,0 +1,6 @@
+# fastlane Appfile — identifiers come from your vault (~/.appfactory/secrets.env), exported
+# into the environment before running fastlane. rename.sh sets the bundle id in the native
+# projects; fastlane auto-detects it, so nothing here is hard-coded to one app.
+apple_id(ENV["APPLE_ID"]) if ENV["APPLE_ID"]
+team_id(ENV["APPLE_TEAM_ID"]) if ENV["APPLE_TEAM_ID"]
+json_key_file(ENV["PLAY_JSON_KEY_PATH"]) if ENV["PLAY_JSON_KEY_PATH"]

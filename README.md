@@ -50,8 +50,9 @@ cd <your-app>
 # 2) Check your environment (Flutter/Dart versions, toolchain):
 bash scripts/doctor.sh
 
-# 3) Generate native folders + make them plugin-ready (desugaring, minSdk, iOS target):
-flutter create .
+# 3) Generate native folders (iOS + Android — this is a mobile template) and make
+#    them plugin-ready (desugaring, minSdk, iOS target):
+flutter create --platforms=android,ios .
 bash scripts/postcreate.sh
 
 # 4) Rebrand in one command (run after step 3):
@@ -95,15 +96,18 @@ default counter app). Runs keyless (mock data); passes `dart_define.dev.json` if
 > IDE/`flutter run` — so the *counter demo* launches instead of your app. `bash scripts/run.sh`
 > and `bash scripts/doctor.sh` now detect and refuse such stray nested projects.
 
-- **iOS Simulator** — fastest, no signing. `open -a Simulator`, then run.
+- **iOS Simulator** — fastest, no signing. Run `open -a Simulator` and **wait for it to
+  finish booting** before you run — `-d "iPhone 16"` only matches a simulator that's
+  already up, otherwise Flutter reports "no supported devices".
 - **Real iPhone** — one-time: open `ios/Runner.xcworkspace` → *Runner* → *Signing &
   Capabilities* → pick your Apple ID team. Then `bash scripts/run.sh "<your iPhone>"`.
 - **Android** (set up later) — install Android Studio (`brew install --cask android-studio`),
   open it once to install the SDK, then `flutter doctor --android-licenses`; create an
   emulator in Device Manager. `bash scripts/doctor.sh` shows your live targets anytime.
 
-> Tip: avoid `macos`/`chrome` targets — `google_mobile_ads`/`purchases_flutter` don't
-> support them, so those builds may fail. Test on a mobile target.
+> Tip: this template scaffolds **iOS + Android only** (`flutter create --platforms=android,ios .`).
+> Desktop/web targets are intentionally absent — `google_mobile_ads`/`purchases_flutter` (and
+> some auth plugins) don't support them, so those builds fail. Test on a mobile target.
 
 ## App Factory — from idea to the App Store (optional)
 
@@ -136,12 +140,19 @@ First run installs the toolchain (gum, Flutter, Claude CLI) and skills, then cre
 `./setup.zsh` again. You only ever do this once per machine.
 
 **Stage 1 — Describe your app (30 seconds).** The script asks four questions: app name,
-bundle id (e.g. `com.you.app`), your one-line idea, and the App Store category.
+bundle id (e.g. `com.you.app`), your one-line idea, and the App Store category. It then
+**isolates your app's git repo**: if `origin` still points at this factory template it's
+detached (fresh history) so app code can never overwrite the template, an app-specific
+`README` is written, and — when the GitHub CLI is signed in — a **private** repo named after
+your app is created and set as `origin` (description = your idea). A `pre-push` hook is
+installed that hard-blocks any push to the factory, as a backstop.
 
 **Stage 2 — Claude builds the MVP (unattended).** `setup.zsh` hands off to **`/mvp`**, which
 runs end-to-end and **stops for your review**:
-`spec → theme → screens → Supabase backend → paywall → legal pages + ASO → ship-check`.
-When it finishes it prints exactly what changed and how to run the app.
+`market → spec → theme → screens → Supabase backend → paywall → legal + ASO → ship-check`.
+It starts with `/market`, which pulls **live** competitor/keyword/pricing data (once) into a
+committed `MARKET.md` that drives the spec, pricing, and store listing — so the app is built
+differentiated and data-driven, not from guesses. When it finishes it prints what changed.
 
 **Stage 3 — Test it, then approve (you, ~10 min).** This is the "what do I do after `/mvp`?"
 step:
@@ -167,13 +178,16 @@ listing (use the `/aso` output), and pressing *Submit*. See
 
 | Command | What it does |
 |---|---|
+| `/market` | Front-loaded **live** market/competitor/keyword/pricing research → writes `MARKET.md` (mcp-appstore + aso-skills) |
+| `/validate` | GO/NO-GO on an idea (wraps `/market` + adds a verdict) |
 | `/feature` | Add a screen/feature via the 11-step recipe |
 | `/theme` | Regenerate the Material 3 theme |
 | `/wire-paywall` | (Re)wire RevenueCat (entitlement `premium`) |
 | `/swap-backend supabase` | Replace mocks with a real Supabase backend |
-| `/aso` | Store keywords + description (App Store Optimization) |
+| `/aso` | Store keywords + metadata from **live** store data (mcp-appstore: real keyword difficulty/traffic + competitors), not model guesses |
 | `/legal` | Privacy policy + terms pages |
-| `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes |
+| `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes (incl. aso-audit + rejection check) |
+| `/growth` | Post-launch growth/UA/analytics/retention (aso-skills) — run after the app is live |
 
 Secrets stay in `~/.appfactory/secrets.env` only (never committed); `setup.zsh` copies the
 client-safe ones into `dart_define.dev.json`. Full details:

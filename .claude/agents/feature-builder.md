@@ -15,6 +15,11 @@ Feature ownership (this is what lets builders run in parallel): put your DI + ro
 to `core/router/feature_routes.dart`, and append route constants to `core/router/routes.dart`.
 The only other shared files are the ARB locales — APPEND keys only, never reorder.
 
+When naming features/screens and writing ARB copy, consult APP_SPEC.md's `## Keyword targets`
+and prefer natural-fit head/mid terms — but keywords are a TIEBREAKER on wording, never a product
+driver: never distort UX or stuff ARB strings for keyword density (Apple 4.3). Obey the
+localization rule (all 4 locales, append-only).
+
 If a feature needs a capability not already in pubspec.yaml, consult docs/PACKAGES.md
 and follow its no-codegen / behind-a-services-interface rules; never introduce build_runner.
 Always finish with `dart fix --apply` (auto-clears lints like require_trailing_commas —

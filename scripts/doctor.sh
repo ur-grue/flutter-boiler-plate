@@ -118,7 +118,7 @@ if [[ -d android || -d ios ]]; then
     note "Android not plugin-ready  →  run: bash scripts/postcreate.sh"
   fi
 else
-  note "No android/ios yet  →  run: flutter create .  (then: bash scripts/postcreate.sh)"
+  note "No android/ios yet  →  run: flutter create --platforms=android,ios .  (then: bash scripts/postcreate.sh)"
 fi
 if [[ -f dart_define.dev.json ]]; then
   ok "dart_define.dev.json present"
@@ -152,6 +152,16 @@ if [[ -d "$skills_dir/aso-skills" ]]; then
   ok "aso-skills present"
 else
   note "aso-skills not found  →  run: npx -y skills add eronred/aso-skills --agent claude-code"
+fi
+if command -v claude >/dev/null 2>&1 && claude mcp list 2>/dev/null | grep -q mcp-appstore; then
+  ok "mcp-appstore present (keyless live ASO data)"
+else
+  note "mcp-appstore not found  →  the keyless live ASO data engine. Re-run ./setup.zsh (Phase 3)"
+fi
+if command -v claude >/dev/null 2>&1 && claude mcp list 2>/dev/null | grep -q appeeky; then
+  ok "appeeky present (live first-party ASO data — optional upgrade)"
+else
+  note "appeeky not registered (optional) → put APPEEKY_API_KEY in ~/.appfactory/secrets.env, re-run ./setup.zsh"
 fi
 
 hd "Test targets"

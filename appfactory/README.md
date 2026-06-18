@@ -31,9 +31,11 @@ Flags: `--no-build` (skip the AI build), `--no-plugins`, `--force` (overwrite co
 - `appfactory/secrets.env.example` — central key store (copied to `~/.appfactory/`).
 
 ## Orchestration (how /mvp works)
-`/mvp` runs: spec → theme → build screens (feature-builder, **serial** — they share
-injector.dart + router) → swap-backend → wire-paywall → **legal + aso in parallel**
-→ ship-check. Stops with a change summary. You test, then `./ship.sh`.
+`/mvp` runs: **market** (live research → `MARKET.md`, fetched once + cached) → spec → theme →
+build screens (feature-builder, **parallel** in git worktrees — each owns its `<x>_module.dart`
+and only appends to the DI/route registries) → swap-backend → wire-paywall → **legal + aso in
+parallel** → ship-check. `/spec`, `/wire-paywall`, and `/aso` READ `MARKET.md` (no re-fetch).
+Stops with a change summary. You test, then `./ship.sh`.
 
 ## Add the CLAUDE.md rule (once, in the template)
 > Design skills inform intent and critique only. All UI is Flutter + Material 3 per
