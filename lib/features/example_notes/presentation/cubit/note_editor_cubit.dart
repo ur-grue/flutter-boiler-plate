@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_boilerplate/features/example_notes/domain/note.dart';
 import 'package:flutter_boilerplate/features/example_notes/domain/notes_repository.dart';
 import 'package:flutter_boilerplate/features/example_notes/presentation/cubit/note_editor_state.dart';
 

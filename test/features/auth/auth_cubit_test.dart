@@ -39,16 +39,24 @@ void main() {
   group('signIn', () {
     blocTest<AuthCubit, AuthState>(
       'emits [Authenticated] and returns null on success',
-      setUp: () => when(() => repo.signIn(email: any(named: 'email'), password: any(named: 'password')))
-          .thenAnswer((_) async => const Ok(user)),
+      setUp: () => when(
+        () => repo.signIn(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => const Ok(user)),
       build: () => AuthCubit(repo),
       act: (cubit) => cubit.signIn('a@b.com', 'secret123'),
       expect: () => [const Authenticated(user)],
     );
 
     test('returns failure message on error', () async {
-      when(() => repo.signIn(email: any(named: 'email'), password: any(named: 'password')))
-          .thenAnswer((_) async => const Err<AppUser>(AuthFailure('bad')));
+      when(
+        () => repo.signIn(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => const Err<AppUser>(AuthFailure('bad')));
       final cubit = AuthCubit(repo);
       final message = await cubit.signIn('a@b.com', 'x');
       expect(message, 'bad');

@@ -13,8 +13,11 @@ abstract final class AppErrorBoundary {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.bug_report_outlined,
-                  color: Colors.white70, size: 48),
+              const Icon(
+                Icons.bug_report_outlined,
+                color: Colors.white70,
+                size: 48,
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Something went wrong.',

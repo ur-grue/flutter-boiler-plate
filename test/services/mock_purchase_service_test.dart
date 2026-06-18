@@ -17,6 +17,8 @@ void main() {
 
     final packages = (await service.packages()).valueOrNull!;
     final result = await service.purchase(packages.first);
+    // Broadcast-stream delivery is async; yield once so the emission lands.
+    await Future<void>.delayed(Duration.zero);
 
     expect(result.valueOrNull, isTrue);
     expect(service.isPremiumNow, isTrue);

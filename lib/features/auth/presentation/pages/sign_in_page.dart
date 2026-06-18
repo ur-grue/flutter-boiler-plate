@@ -85,7 +85,8 @@ class _SignInPageState extends State<SignInPage> {
                       controller: _passwordController,
                       obscureText: true,
                       autofillHints: const [AutofillHints.password],
-                      decoration: InputDecoration(labelText: l10n.passwordLabel),
+                      decoration:
+                          InputDecoration(labelText: l10n.passwordLabel),
                       validator: (v) => Validators.password(v),
                       onFieldSubmitted: (_) => _submit(),
                     ),

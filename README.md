@@ -80,10 +80,13 @@ Extra native config is needed **only when you turn features on**: AdMob app id i
 ## App Factory — automate the whole MVP (optional)
 
 For a hands-off flow, the **App Factory** turns *idea → tested MVP* into one command:
-clone → `./new-app.sh` (4 questions) → Claude builds the MVP via `/mvp` (spec → theme →
+clone → `./setup.zsh` (4 questions) → Claude builds the MVP via `/mvp` (spec → theme →
 screens → Supabase backend → paywall → legal + ASO → ship-check) → you test → `./ship.sh`.
-Secrets are entered **once** in `~/.appfactory/secrets.env`. Requires **zsh** + the Claude
-Code CLI. See **[appfactory/README.md](appfactory/README.md)**.
+`setup.zsh` is the single entrypoint: it auto-installs missing tooling (gum, Flutter,
+Claude CLI) via **Homebrew** — asking first — then configures Claude Code, scaffolds, and
+builds, all in a cyberpunk TUI. Secrets are entered **once** in `~/.appfactory/secrets.env`.
+Requires **macOS + zsh**. (`./new-app.sh` still works — it forwards to `./setup.zsh`.)
+See **[appfactory/README.md](appfactory/README.md)**.
 
 ## Configuration
 

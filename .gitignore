@@ -33,6 +33,10 @@ dart_define*.json
 # App Factory session tracking
 .appfactory_session
 
+# Claude Code
+.claude/settings.local.json
+CLAUDE.md.bak
+
 # Signing / service config
 *.jks
 *.keystore

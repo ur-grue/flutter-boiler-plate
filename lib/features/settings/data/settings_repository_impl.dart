@@ -15,8 +15,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       themeMode: _readThemeMode(),
       locale: _readLocale(),
       seedColor: _readSeedColor(),
-      hapticsEnabled:
-          _store.getBool(StorageKeys.hapticsEnabled) ?? true,
+      hapticsEnabled: _store.getBool(StorageKeys.hapticsEnabled) ?? true,
     );
   }
 
