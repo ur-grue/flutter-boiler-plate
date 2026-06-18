@@ -50,8 +50,9 @@ cd <your-app>
 # 2) Check your environment (Flutter/Dart versions, toolchain):
 bash scripts/doctor.sh
 
-# 3) Generate native folders + make them plugin-ready (desugaring, minSdk, iOS target):
-flutter create .
+# 3) Generate native folders (iOS + Android — this is a mobile template) and make
+#    them plugin-ready (desugaring, minSdk, iOS target):
+flutter create --platforms=android,ios .
 bash scripts/postcreate.sh
 
 # 4) Rebrand in one command (run after step 3):
@@ -90,15 +91,18 @@ bash scripts/run.sh "iPhone 16"      # or target one from `flutter devices` (nam
 It refuses to run unless you're in the app's root (so it can't accidentally scaffold a
 default counter app). Runs keyless (mock data); passes `dart_define.dev.json` if present.
 
-- **iOS Simulator** — fastest, no signing. `open -a Simulator`, then run.
+- **iOS Simulator** — fastest, no signing. Run `open -a Simulator` and **wait for it to
+  finish booting** before you run — `-d "iPhone 16"` only matches a simulator that's
+  already up, otherwise Flutter reports "no supported devices".
 - **Real iPhone** — one-time: open `ios/Runner.xcworkspace` → *Runner* → *Signing &
   Capabilities* → pick your Apple ID team. Then `bash scripts/run.sh "<your iPhone>"`.
 - **Android** (set up later) — install Android Studio (`brew install --cask android-studio`),
   open it once to install the SDK, then `flutter doctor --android-licenses`; create an
   emulator in Device Manager. `bash scripts/doctor.sh` shows your live targets anytime.
 
-> Tip: avoid `macos`/`chrome` targets — `google_mobile_ads`/`purchases_flutter` don't
-> support them, so those builds may fail. Test on a mobile target.
+> Tip: this template scaffolds **iOS + Android only** (`flutter create --platforms=android,ios .`).
+> Desktop/web targets are intentionally absent — `google_mobile_ads`/`purchases_flutter` (and
+> some auth plugins) don't support them, so those builds fail. Test on a mobile target.
 
 ## App Factory — from idea to the App Store (optional)
 

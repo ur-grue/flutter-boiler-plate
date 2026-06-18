@@ -100,7 +100,7 @@ if [[ -d android || -d ios ]]; then
     note "Android not plugin-ready  →  run: bash scripts/postcreate.sh"
   fi
 else
-  note "No android/ios yet  →  run: flutter create .  (then: bash scripts/postcreate.sh)"
+  note "No android/ios yet  →  run: flutter create --platforms=android,ios .  (then: bash scripts/postcreate.sh)"
 fi
 if [[ -f dart_define.dev.json ]]; then
   ok "dart_define.dev.json present"

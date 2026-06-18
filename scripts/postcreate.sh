@@ -26,10 +26,11 @@ MIN_SDK=23
 IOS_TARGET="13.0"
 
 # Auto-generate platform folders if missing (so this is truly one-shot).
+# Mobile only — desktop/web targets pull in plugins this factory never uses.
 if [[ ! -d android && ! -d ios ]]; then
   if command -v flutter >/dev/null 2>&1; then
-    hd "No platform folders — running flutter create ."
-    flutter create . >/dev/null && ok "Platform folders generated"
+    hd "No platform folders — running flutter create --platforms=android,ios ."
+    flutter create --platforms=android,ios . >/dev/null && ok "Platform folders generated"
   else
     note "No android/ios folders and flutter not found. Run 'flutter create .' first."
     exit 1

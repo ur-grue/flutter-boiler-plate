@@ -527,7 +527,7 @@ CATEGORY="$(gum input --prompt "App Store category › " --placeholder "Producti
 # ──────────────────────────────────────────────────────────────────────────────
 section "05" "SCAFFOLDING PROJECT"
 
-gum spin --spinner dot --title "flutter create ." -- flutter create .
+gum spin --spinner dot --title "flutter create (iOS + Android)" -- flutter create --platforms=android,ios .
 if [[ -f scripts/rename.sh ]]; then
   bash scripts/rename.sh "$APP_NAME" "$BUNDLE_ID"
 elif [[ -f tool/rename.dart ]]; then
