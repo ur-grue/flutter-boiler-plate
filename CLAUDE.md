@@ -15,3 +15,6 @@ Quick reminders for Claude Code:
 
 Design skills inform intent and critique only. All UI is Flutter + Material 3 per
 AGENTS.md. Ignore web/CSS advice (hover, HTML, gradients); use the boilerplate theme.
+
+## Clean Code
+Apply the project's Clean Code rules at all times: @docs/clean-code.md

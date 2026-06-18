@@ -5,17 +5,26 @@ Drop these into your boilerplate's template repo. Then per new app:
 ```
 gh repo create my-app --template ur-grue/flutter-boiler-plate --private --clone
 cd my-app
-~/path/to/new-app.sh          # answer 4 questions → Claude builds the MVP
+./setup.zsh                   # ONE script: installs tools, 4 questions → Claude builds the MVP
 flutter run --dart-define-from-file=dart_define.dev.json   # test
 ./ship.sh                     # after you approve → build + store checklist
 ```
 
+`./setup.zsh` is the single cyberpunk entrypoint (gum TUI). It auto-installs anything
+missing — gum, Flutter, the Claude CLI — via **Homebrew**, asking before each install, then
+runs through: prereqs → secrets → Claude Code config → plugins → interview → scaffold →
+AI `/mvp` build. macOS + zsh required. (`./new-app.sh` is a thin shim that forwards to it.)
+
+Flags: `--no-build` (skip the AI build), `--no-plugins`, `--force` (overwrite config),
+`--reinstall` (re-run plugin install).
+
 ## One-time setup (never repeated)
-1. `./new-app.sh` once → it creates `~/.appfactory/secrets.env`. Fill in your keys there ONCE.
-2. Re-run `./new-app.sh`. First run also installs the skills (ASO + ceorkm + impeccable) globally.
+1. `./setup.zsh` once → it creates `~/.appfactory/secrets.env`. Fill in your keys there ONCE.
+2. Re-run `./setup.zsh`. First run also installs the Claude plugins (superpowers, marketing-skills).
 
 ## What's in here
-- `new-app.sh` — interview → scaffold → headless Claude build (`/mvp`) → stop for your test.
+- `setup.zsh` — the entrypoint: auto-install → config → interview → scaffold → `/mvp` build.
+- `new-app.sh` — thin shim that forwards to `setup.zsh` (back-compat).
 - `ship.sh` — after approval: `/release` (resumes the same session).
 - `.claude/commands/` — the steps as `/`-commands (`/mvp` orchestrates the rest).
 - `.claude/agents/` — feature-builder, design-critic, compliance-auditor (subagents).

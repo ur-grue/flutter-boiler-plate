@@ -1,0 +1,519 @@
+#!/usr/bin/env zsh
+# ──────────────────────────────────────────────────────────────────────────────
+# setup.zsh — APP FACTORY // one-script cyberpunk bootstrap
+#
+#   git clone <your-app> && cd <your-app> && ./setup.zsh
+#
+# Does everything, in order:
+#   0. Prereqs + auto-install (Homebrew): gum · Flutter · Claude CLI
+#   1. Central secrets  (~/.appfactory/secrets.env — entered ONCE)
+#   2. Claude Code config (.claude/settings*.json, docs/clean-code.md) — never
+#      clobbers this repo's Flutter CLAUDE.md / AGENTS.md
+#   3. Claude plugins (superpowers · marketing-skills)
+#   4. Interview (app name · bundle id · idea · category)
+#   5. Scaffold (flutter create → rename → postcreate → dart_define → pub get)
+#   6. AI MVP build  (claude -p /mvp)
+#   7. SYSTEM ONLINE
+#
+# Options:
+#   --no-build        scaffold + configure, but skip the AI /mvp build
+#   --no-plugins      skip Claude plugin install
+#   --force           overwrite existing .claude config files (default: skip)
+#   --reinstall       re-run plugin install even if already marked done
+#   -h | --help       this screen
+#
+# Requires: macOS + zsh. Auto-installs gum/Flutter/Claude via Homebrew (asks first).
+# ──────────────────────────────────────────────────────────────────────────────
+set -euo pipefail
+
+CFG_DIR="$HOME/.appfactory"
+SECRETS="$CFG_DIR/secrets.env"
+PLUGINS_MARK="$CFG_DIR/.plugins_installed"
+KIT_DIR="${0:A:h}"
+
+# ── args ───────────────────────────────────────────────────────────────────────
+DO_BUILD=1; DO_PLUGINS=1; FORCE=0; REINSTALL=0; HELP=0
+while (( $# )); do
+  case "$1" in
+    --no-build)   DO_BUILD=0 ;;
+    --no-plugins) DO_PLUGINS=0 ;;
+    --force)      FORCE=1 ;;
+    --reinstall)  REINSTALL=1 ;;
+    -h|--help)    HELP=1 ;;
+    *)            echo "unknown option: $1" >&2; exit 1 ;;
+  esac
+  shift
+done
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 0a — pre-gum bootstrap (plain text; gum doesn't exist yet)
+# ──────────────────────────────────────────────────────────────────────────────
+plain_die() { print -P "%F{red}✗ $1%f"; exit 1; }
+
+[[ "$(uname -s)" == "Darwin" ]] || plain_die \
+  "This script targets macOS (zsh + Homebrew). On other platforms, install Flutter + Claude manually, then run new-app.sh."
+
+ensure_brew() {
+  command -v brew >/dev/null 2>&1 && return 0
+  print -P "%F{yellow}▸ Homebrew is required and not installed.%f"
+  print -P "  It powers the auto-install of gum, Flutter, and the Claude CLI."
+  printf "  Install Homebrew now? [y/N] "
+  read -r reply
+  if [[ "$reply" == [yY]* ]]; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Make brew available on Apple Silicon + Intel for the rest of this run.
+    [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+    [[ -x /usr/local/bin/brew ]]   && eval "$(/usr/local/bin/brew shellenv)"
+    command -v brew >/dev/null 2>&1 || plain_die "Homebrew install did not complete — see https://brew.sh"
+  else
+    plain_die "Install Homebrew (https://brew.sh) then re-run ./setup.zsh"
+  fi
+}
+
+ensure_gum() {
+  command -v gum >/dev/null 2>&1 && return 0
+  print -P "%F{cyan}▸ Installing gum (the cyberpunk UI)…%f"
+  brew install gum || plain_die "Could not install gum — run: brew install gum"
+}
+
+ensure_brew
+ensure_gum
+
+# ──────────────────────────────────────────────────────────────────────────────
+# From here on the gum UI is live.
+# ──────────────────────────────────────────────────────────────────────────────
+PINK="212"; CYAN="51"; GREEN="82"; AMBER="214"; PURP="99"; GREY="245"
+
+ok()    { gum log --level info  "$1"; }
+warn()  { gum log --level warn  "$1"; }
+err()   { gum log --level error "$1"; }
+info()  { gum log --level debug "$1"; }
+wrote() { gum log --level info  "wrote: $1"; }
+die()   { gum log --level error "$1"; exit 1; }
+
+section() {
+  echo
+  gum style --foreground "$PURP" --bold \
+    --border-foreground "$PURP" --border normal --padding "0 1" \
+    "[ $1 ]  $2"
+}
+
+confirm() { gum confirm "$1"; }   # returns nonzero on "no"
+
+safe_write() {
+  local dest="$1"
+  if [[ -e "$dest" && $FORCE -eq 0 ]]; then
+    warn "skip (exists): $dest  — use --force to overwrite"
+    cat > /dev/null
+    return 0
+  fi
+  mkdir -p "${dest:h}"
+  cat > "$dest"
+  wrote "$dest"
+}
+
+usage() {
+  gum style --foreground "$PINK" --border-foreground "$PURP" \
+    --border double --align center --width 56 --padding "1 3" \
+    "APP FACTORY  //  setup" "clone → one script → tested MVP"
+  echo
+  gum style --foreground "$CYAN" --bold "USAGE"
+  gum style --foreground "$GREY"  "  ./setup.zsh [options]"
+  echo
+  gum style --foreground "$CYAN" --bold "OPTIONS"
+  gum style --foreground "$GREY" \
+    "  --no-build     scaffold + configure, skip the AI /mvp build" \
+    "  --no-plugins   skip Claude plugin install" \
+    "  --force        overwrite existing .claude config files" \
+    "  --reinstall    re-run plugin install" \
+    "  -h --help      this screen"
+  echo
+  exit 0
+}
+(( HELP )) && usage
+
+# ── banner ──────────────────────────────────────────────────────────────────────
+echo
+gum style --foreground "$PINK" \
+  ' █████╗ ██████╗ ██████╗     ███████╗ █████╗  ██████╗████████╗ ██████╗ ██████╗ ██╗   ██╗' \
+  '██╔══██╗██╔══██╗██╔══██╗    ██╔════╝██╔══██╗██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗╚██╗ ██╔╝' \
+  '███████║██████╔╝██████╔╝    █████╗  ███████║██║        ██║   ██║   ██║██████╔╝ ╚████╔╝ ' \
+  '██╔══██║██╔═══╝ ██╔═══╝     ██╔══╝  ██╔══██║██║        ██║   ██║   ██║██╔══██╗  ╚██╔╝  ' \
+  '██║  ██║██║     ██║         ██║     ██║  ██║╚██████╗   ██║   ╚██████╔╝██║  ██║   ██║   ' \
+  '╚═╝  ╚═╝╚═╝     ╚═╝         ╚═╝     ╚═╝  ╚═╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝   ╚═╝   '
+gum style --foreground "$CYAN" --bold \
+  --border-foreground "$PURP" --border normal --align center --width 86 --padding "0 2" \
+  "V I B E - D E C K  //  idea → tested MVP, one script" \
+  "project: ${KIT_DIR:t}"
+echo
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 0b — toolchain (Flutter locator + auto-install; Claude CLI)
+# ──────────────────────────────────────────────────────────────────────────────
+section "00" "PROVISIONING TOOLCHAIN"
+
+# Probe common SDK locations for a present-but-unexported Flutter, add to PATH.
+locate_flutter() {
+  command -v flutter >/dev/null 2>&1 && return 0
+  local cand
+  for cand in \
+    "$HOME/development/flutter/bin" \
+    "$HOME/flutter/bin" \
+    "$HOME/fvm/default/bin" \
+    "$PWD/.fvm/flutter_sdk/bin" \
+    "$HOME/.puro/envs/default/flutter/bin" \
+    "/opt/homebrew/bin" \
+    "/usr/local/bin"; do
+    if [[ -x "$cand/flutter" ]]; then
+      export PATH="$cand:$PATH"
+      info "found Flutter at $cand (added to PATH for this run)"
+      return 0
+    fi
+  done
+  return 1
+}
+
+ensure_flutter() {
+  if locate_flutter; then ok "Flutter present"; return 0; fi
+  warn "Flutter not found on PATH or in common SDK locations."
+  if confirm "Install Flutter via Homebrew (brew install --cask flutter)?"; then
+    gum spin --spinner moon --title "installing Flutter (multi-GB, be patient)…" \
+      -- brew install --cask flutter || die "Flutter install failed — see https://docs.flutter.dev/get-started/install/macos"
+    locate_flutter || die "Flutter installed but not on PATH — open a new terminal and re-run."
+    ok "Flutter installed"
+  else
+    die "Install Flutter (https://docs.flutter.dev/get-started/install/macos), open a new terminal, then re-run."
+  fi
+}
+
+ensure_claude() {
+  command -v claude >/dev/null 2>&1 && { ok "Claude CLI present"; return 0; }
+  warn "Claude Code CLI not found."
+  if confirm "Install the Claude Code CLI now (official installer)?"; then
+    gum spin --spinner pulse --title "installing Claude Code…" \
+      -- /bin/bash -c 'curl -fsSL https://claude.ai/install.sh | bash' \
+      || warn "Claude install returned nonzero — install manually: https://docs.claude.com/claude-code"
+    # The installer drops the binary in ~/.local/bin on most setups.
+    [[ -x "$HOME/.local/bin/claude" ]] && export PATH="$HOME/.local/bin:$PATH"
+    command -v claude >/dev/null 2>&1 && ok "Claude CLI installed" || warn "claude still not on PATH (needed for the build step)"
+  else
+    warn "Skipping Claude install — the AI /mvp build step will be skipped."
+  fi
+}
+
+ensure_flutter
+ensure_claude
+command -v git >/dev/null 2>&1 || die "git not found — install Xcode Command Line Tools: xcode-select --install"
+command -v jq  >/dev/null 2>&1 || info "jq not found (optional, used for session tracking)"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 1 — central secrets (entered ONCE)
+# ──────────────────────────────────────────────────────────────────────────────
+section "01" "LOADING SECRET VAULT"
+
+mkdir -p "$CFG_DIR"
+if [[ ! -f "$SECRETS" ]]; then
+  cp "$KIT_DIR/appfactory/secrets.env.example" "$SECRETS"
+  chmod 600 "$SECRETS"
+  warn "First run: fill in your keys once, then re-run ./setup.zsh"
+  gum style --foreground "$AMBER" "  vault: $SECRETS"
+  exit 0
+fi
+set -a; source "$SECRETS"; set +a
+ok "Loaded central secrets from $SECRETS"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 2 — Claude Code config (idempotent; preserves Flutter CLAUDE.md/AGENTS.md)
+# ──────────────────────────────────────────────────────────────────────────────
+section "02" "FORGING CONFIG MATRIX"
+
+safe_write "docs/clean-code.md" <<'EOF'
+# Clean Code Rules
+*Distilled from Robert C. Martin's "Clean Code." Apply at all times, not just on request.*
+
+## Naming
+- Use intention-revealing names. `daysSinceCreation`, not `d`.
+- Avoid disinformation and false encodings (`userList` for a non-List is a lie).
+- Use pronounceable, searchable names. Single-letter vars only in tiny local scope.
+- Functions are verbs (`getUserById`). Classes are nouns (`UserRepository`).
+- Booleans are predicates (`isActive`, `hasPermission`).
+- Drop redundant context (`user.userName` → `user.name`).
+- One word per concept — don't mix `fetch`, `retrieve`, and `get` for the same idea.
+
+## Functions
+- Do one thing. If you can extract a sub-function with a non-redundant name, it did more than one thing.
+- Keep them small — ideally < 20 lines, almost never > 40.
+- Arguments: 0–2 ideal, 3 borderline, 4+ is a design smell (pass an object).
+- No hidden side effects beyond what the name implies.
+- Command/query separation: a function either does something or answers something, not both.
+- Prefer exceptions to error codes. Don't return `null`; don't pass `null`.
+
+## Comments
+- Good code is mostly self-documenting; comments compensate for failures to express intent in code.
+- Explain *why*, not *what*.
+- Never leave commented-out code — that's what git is for.
+- Delete noise comments (`// default constructor`).
+- TODO/FIXME are fine if tracked.
+
+## Formatting
+- Vertical: related code stays together; blank lines separate concepts.
+- Declare variables close to their use.
+- Newspaper structure: high-level functions on top, details below (caller above callee).
+- Keep lines reasonable (≤ 120 chars).
+- Defer to the project's formatter/linter — don't hand-fight it.
+
+## Error Handling
+- Use exceptions, not error codes.
+- Provide context in messages: the operation that failed and why.
+- Don't swallow exceptions silently.
+- Don't return or pass `null` — use empty collections, Option/Result types, or throw.
+- Wrap third-party errors at the boundary so callers see one consistent type.
+
+## Objects & Data Structures
+- Small, single-responsibility classes; few instance variables (high cohesion).
+- Hide internals — expose behavior, not raw data.
+- Prefer composition over inheritance.
+- Law of Demeter: a method talks only to itself, its arguments, objects it creates,
+  and its direct components. Avoid train wrecks (`a.getB().getC().doThing()`).
+
+## Tests (F.I.R.S.T.)
+- **Fast** — run in milliseconds so you run them often.
+- **Independent** — no test depends on another's state or order.
+- **Repeatable** — same result on any machine, offline.
+- **Self-validating** — a boolean pass/fail, no manual log-reading.
+- **Timely** — write them with (ideally just before) the production code.
+- One assert *concept* per test. Test boundary conditions explicitly.
+- Keep test code as clean as production code — don't let it rot.
+
+## The Boy Scout Rule
+*Leave the code cleaner than you found it.* Each session: rename one unclear variable,
+split one over-long function, delete one comment that states the obvious.
+EOF
+
+safe_write ".claude/settings.json" <<'EOF'
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "permissions": {
+    "allow": [
+      "Bash(flutter *)",
+      "Bash(dart *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(bash scripts/*.sh)"
+    ],
+    "ask": [
+      "Bash(rm *)",
+      "Bash(mv *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(supabase db *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | bash)",
+      "Bash(eval *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/secrets/**)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+
+  "attribution": {
+    "commits": false,
+    "pullRequests": true
+  },
+
+  "cleanupPeriodDays": 30,
+  "spinnerTipsEnabled": false,
+  "enableAllProjectMcpServers": false,
+
+  "enabledPlugins": {}
+}
+EOF
+
+safe_write ".claude/settings.local.json" <<'EOF'
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "//": "Personal overrides — gitignored. Machine-specific or experimental settings.",
+  "permissions": { "allow": [], "ask": [], "deny": [] }
+}
+EOF
+
+# Point this repo's Flutter CLAUDE.md at the clean-code rules (append once; never clobber).
+if [[ -f CLAUDE.md ]] && ! grep -q 'docs/clean-code.md' CLAUDE.md; then
+  cat >> CLAUDE.md <<'EOF'
+
+## Clean Code
+Apply the project's Clean Code rules at all times: @docs/clean-code.md
+EOF
+  ok "CLAUDE.md → linked docs/clean-code.md"
+fi
+
+# Seal .gitignore (append only missing entries).
+GITIGNORE_LINES=(
+  "# Claude Code"
+  ".claude/settings.local.json"
+  "CLAUDE.md.bak"
+)
+if [[ -e .gitignore ]]; then
+  for line in "${GITIGNORE_LINES[@]}"; do
+    grep -qxF "$line" .gitignore || echo "$line" >> .gitignore
+  done
+  ok "updated .gitignore"
+else
+  printf '%s\n' "${GITIGNORE_LINES[@]}" > .gitignore
+  wrote ".gitignore"
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 3 — Claude plugins (idempotent, non-fatal)
+# ──────────────────────────────────────────────────────────────────────────────
+section "03" "DEPLOYING SKILLMATRIX"
+
+patch_enabled_plugin() {
+  local key="$1" file=".claude/settings.json"
+  grep -q "\"$key\"" "$file" 2>/dev/null && return 0
+  command -v python3 >/dev/null 2>&1 || return 1
+  python3 - "$file" "$key" <<'PY'
+import json, sys
+path, key = sys.argv[1], sys.argv[2]
+with open(path) as f: data = json.load(f)
+data.setdefault("enabledPlugins", {})[key] = True
+with open(path, "w") as f: json.dump(data, f, indent=2); f.write("\n")
+PY
+}
+
+install_plugin() {
+  local repo="$1" market="$2" name="$3"
+  local key="${name}@${market}"
+  gum spin --spinner globe --title "transmitting $key ..." \
+    -- claude plugin marketplace add "$repo" \
+    || warn "$name: marketplace add returned nonzero (may already exist)"
+  if gum spin --spinner pulse --title "installing $key ..." \
+      -- claude plugin install "$key" --scope project; then
+    ok "linked $key"
+  else
+    warn "install failed for $key"
+  fi
+  grep -q "\"$key\"" .claude/settings.json 2>/dev/null \
+    && info "verified in settings.json" \
+    || { patch_enabled_plugin "$key" && warn "patched enabledPlugins manually" || true; }
+}
+
+if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
+  if [[ ! -f "$PLUGINS_MARK" || $REINSTALL -eq 1 ]]; then
+    install_plugin "obra/superpowers-marketplace"  "superpowers-marketplace" "superpowers"
+    install_plugin "coreyhaines31/marketingskills" "marketingskills"         "marketing-skills"
+    touch "$PLUGINS_MARK"
+  else
+    info "plugins already installed (--reinstall to redo)"
+  fi
+elif (( DO_PLUGINS )); then
+  warn "claude CLI not found — skipping plugin install"
+else
+  info "--no-plugins set, skipping"
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 4 — interview
+# ──────────────────────────────────────────────────────────────────────────────
+section "04" "INTAKE INTERVIEW"
+
+APP_NAME="$(gum input --prompt "App display name › " --placeholder "My App")"
+BUNDLE_ID="$(gum input --prompt "Bundle id › "        --placeholder "com.brand.app")"
+IDEA="$(gum input --prompt "One-line idea › "         --placeholder "the problem you solve")"
+CATEGORY="$(gum input --prompt "App Store category › " --placeholder "Productivity")"
+: "${APP_NAME:?app name required}" "${BUNDLE_ID:?bundle id required}" \
+  "${IDEA:?idea required}" "${CATEGORY:?category required}"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 5 — scaffold (deterministic, no AI)
+# ──────────────────────────────────────────────────────────────────────────────
+section "05" "SCAFFOLDING PROJECT"
+
+gum spin --spinner dot --title "flutter create ." -- flutter create .
+if [[ -f scripts/rename.sh ]]; then
+  bash scripts/rename.sh "$APP_NAME" "$BUNDLE_ID"
+elif [[ -f tool/rename.dart ]]; then
+  dart run tool/rename.dart "$APP_NAME" "$BUNDLE_ID"
+fi
+[[ -f scripts/postcreate.sh ]] && bash scripts/postcreate.sh
+
+# Client-safe keys only → dart_define (secrets stay in the vault).
+cat > dart_define.dev.json <<JSON
+{
+  "APP_ENV": "dev",
+  "API_BASE_URL": "${API_BASE_URL:-https://example.com}",
+  "ADS_ENABLED": "${ADS_ENABLED:-false}",
+  "ADMOB_APP_ID_ANDROID": "${ADMOB_APP_ID_ANDROID:-}",
+  "ADMOB_APP_ID_IOS": "${ADMOB_APP_ID_IOS:-}",
+  "PURCHASES_ENABLED": "true",
+  "REVENUECAT_API_KEY": "${REVENUECAT_API_KEY:-}"
+}
+JSON
+
+gum spin --spinner dot --title "flutter pub get"  -- flutter pub get
+gum spin --spinner dot --title "flutter gen-l10n" -- flutter gen-l10n
+ok "Project scaffolded for $APP_NAME ($BUNDLE_ID)"
+
+cat > APPFACTORY_INPUTS.md <<MD
+# App inputs
+- Name: $APP_NAME
+- Bundle id: $BUNDLE_ID
+- Idea / problem: $IDEA
+- Category: $CATEGORY
+- RevenueCat entitlement: premium
+- Backend: Supabase (SUPABASE_URL/ANON in central secrets; LLM key stays server-side)
+- ASO data source: ${ASO_DATA_SOURCE:-web_search + aso-optimizer skill}
+MD
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 6 — AI MVP build
+# ──────────────────────────────────────────────────────────────────────────────
+if (( DO_BUILD )) && command -v claude >/dev/null 2>&1; then
+  section "06" "BUILDING MVP (AI)"
+  info "Claude is building the MVP unattended; review the diff after."
+  OUT="$(claude -p "/mvp" --permission-mode acceptEdits --output-format json 2>/dev/null || true)"
+  if command -v jq >/dev/null 2>&1 && [[ -n "$OUT" ]]; then
+    echo "$OUT" | jq -r '.session_id' > .appfactory_session 2>/dev/null || true
+  fi
+  ok "MVP build finished."
+else
+  section "06" "BUILDING MVP (AI)"
+  (( DO_BUILD )) || info "--no-build set, skipping the AI build."
+  command -v claude >/dev/null 2>&1 || warn "claude CLI missing — skipped the AI build."
+fi
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PHASE 7 — SYSTEM ONLINE
+# ──────────────────────────────────────────────────────────────────────────────
+echo
+gum style --foreground "$GREEN" --bold \
+  --border-foreground "$PURP" --border double \
+  --align center --width 64 --padding "1 3" \
+  "◢◤  SYSTEM ONLINE  ◥◣" \
+  "" \
+  "$APP_NAME  ·  $BUNDLE_ID" \
+  "" \
+  "next:" \
+  "  1. test:     flutter run --dart-define-from-file=dart_define.dev.json" \
+  "  2. verify:   flutter analyze && flutter test" \
+  "  3. ship:     ./ship.sh"
+echo

@@ -39,6 +39,24 @@ version_ge() {
   return 0
 }
 
+# Locate a present-but-unexported Flutter SDK and add it to PATH for this run
+# (mirrors setup.zsh, so doctor.sh agrees with the bootstrap script).
+if ! command -v flutter >/dev/null 2>&1; then
+  for cand in \
+    "$HOME/development/flutter/bin" \
+    "$HOME/flutter/bin" \
+    "$HOME/fvm/default/bin" \
+    "$PWD/.fvm/flutter_sdk/bin" \
+    "$HOME/.puro/envs/default/flutter/bin" \
+    "/opt/homebrew/bin" \
+    "/usr/local/bin"; do
+    if [[ -x "$cand/flutter" ]]; then
+      export PATH="$cand:$PATH"
+      break
+    fi
+  done
+fi
+
 # Required versions, read from pubspec.yaml so this never drifts.
 req_flutter="$(grep -E '^\s*flutter:\s*">=' pubspec.yaml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 req_dart="$(grep -E '^\s*sdk:\s*">=' pubspec.yaml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
@@ -66,7 +84,11 @@ if command -v flutter >/dev/null 2>&1; then
     note "Could not read Dart version (bundled with Flutter — usually fine)"
   fi
 else
-  bad "flutter not found in PATH  →  install: https://docs.flutter.dev/get-started/install"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    bad "flutter not found  →  macOS: brew install --cask flutter  (or https://docs.flutter.dev/get-started/install/macos), then reopen the terminal. Or run ./setup.zsh to auto-install."
+  else
+    bad "flutter not found in PATH  →  install: https://docs.flutter.dev/get-started/install"
+  fi
 fi
 
 hd "Project setup"
