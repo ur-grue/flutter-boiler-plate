@@ -8,7 +8,13 @@ Two engines, separate lanes:
   store metadata, matching the app's locales), `category-positioning`.
 - **Copy/voice → `marketing-skills`** only — never for the keyword data itself.
 
-## Get the data FIRST (mcp-appstore tools) — do not skip this
+## REUSE MARKET.md first (don't re-fetch)
+If MARKET.md exists (written by /market), it already holds the competitor table (§1), the tiered
+keyword set with difficulty/traffic (§4), and pricing (§5). **Use it** — your job here is to turn
+that research into store-ready metadata + localized copy. Only run the live-fetch path below if
+MARKET.md is absent, marked OFFLINE/PARTIAL, or older than this build session.
+
+## Live-fetch path (only when MARKET.md can't be reused) — mcp-appstore tools
 1. `search_app` + `get_similar_apps` → identify the 5–8 real competitors for this niche.
 2. `get_app_details` + `get_pricing_details` on each → positioning + monetization (real).
 3. `analyze_top_keywords` + `suggest_keywords_by_competition` / `_by_search` / `_by_similarity`

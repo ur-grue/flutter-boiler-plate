@@ -108,11 +108,18 @@ write voice/launch copy with `marketing-skills`. Never source keyword numbers fr
 
 ### aso-skills → command map (which of the 40 skills we wire, and where)
 
+Two-touchpoint workflow: **/market** fetches live data ONCE up front → writes `MARKET.md`
+(competitors, differentiation, tiered keywords w/ difficulty+traffic, data-driven pricing);
+/spec, /wire-paywall, and /aso READ that cache (no re-fetch — respects Appeeky free-tier). Store-
+ready ASO is the tail; /growth is post-launch.
+
 Build-time (inside `/mvp`):
-- **/spec:** `app-marketing-context`, `category-positioning`, `monetization-strategy`,
-  `onboarding-optimization`, `retention-optimization`.
-- **/validate:** `aso-router`, `competitor-analysis`, `market-pulse`, `market-movers`,
-  `category-positioning`.
+- **/market (Step 1):** `aso-router`, `app-marketing-context`, `competitor-analysis`,
+  `market-pulse`, `market-movers`, `category-positioning`, `keyword-research`,
+  `monetization-strategy` + all relevant `mcp-appstore` tools. Writes `MARKET.md`.
+- **/spec:** reads MARKET.md; refines with `app-marketing-context`, `category-positioning`,
+  `monetization-strategy`, `onboarding-optimization`, `retention-optimization`.
+- **/validate:** thin wrapper over **/market** + a GO/NO-GO verdict (standalone, not in /mvp).
 - **/aso:** `keyword-research`, `metadata-optimization`, `competitor-analysis`, `android-aso`,
   `seasonal-aso`, `screenshot-optimization`, `localization`, `category-positioning`.
 - **/theme:** `app-icon-optimization`.

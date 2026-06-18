@@ -144,8 +144,10 @@ installed that hard-blocks any push to the factory, as a backstop.
 
 **Stage 2 — Claude builds the MVP (unattended).** `setup.zsh` hands off to **`/mvp`**, which
 runs end-to-end and **stops for your review**:
-`spec → theme → screens → Supabase backend → paywall → legal pages + ASO → ship-check`.
-When it finishes it prints exactly what changed and how to run the app.
+`market → spec → theme → screens → Supabase backend → paywall → legal + ASO → ship-check`.
+It starts with `/market`, which pulls **live** competitor/keyword/pricing data (once) into a
+committed `MARKET.md` that drives the spec, pricing, and store listing — so the app is built
+differentiated and data-driven, not from guesses. When it finishes it prints what changed.
 
 **Stage 3 — Test it, then approve (you, ~10 min).** This is the "what do I do after `/mvp`?"
 step:
@@ -171,6 +173,8 @@ listing (use the `/aso` output), and pressing *Submit*. See
 
 | Command | What it does |
 |---|---|
+| `/market` | Front-loaded **live** market/competitor/keyword/pricing research → writes `MARKET.md` (mcp-appstore + aso-skills) |
+| `/validate` | GO/NO-GO on an idea (wraps `/market` + adds a verdict) |
 | `/feature` | Add a screen/feature via the 11-step recipe |
 | `/theme` | Regenerate the Material 3 theme |
 | `/wire-paywall` | (Re)wire RevenueCat (entitlement `premium`) |
