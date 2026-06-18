@@ -58,6 +58,13 @@ routes to splash. Navigate with `context.goNamed`/`pushNamed(Routes.x)`.
 mock/no-op default and a real impl chosen in `injector.dart` based on `AppConfig`
 flags. Never call a real SDK's `init()`/`configure()` unless the flag/key is set.
 
+## Choosing packages
+
+Before adding **any** dependency, consult [`docs/PACKAGES.md`](docs/PACKAGES.md). Reuse what
+is already in `pubspec.yaml` first. **Never** add codegen/`build_runner` packages
+(`freezed`, `json_serializable`, `retrofit`, `auto_route`, `injectable`, …). New keyed or
+native capabilities go behind a `services/` interface with a mock default (see above).
+
 ## DO NOT TOUCH / DO NOT COMMIT
 
 - `lib/core/l10n/gen/` — generated; run `flutter gen-l10n` instead.
