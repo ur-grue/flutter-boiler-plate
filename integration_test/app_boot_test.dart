@@ -17,7 +17,8 @@ import 'package:flutter_boilerplate/core/config/app_env.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('app boots via bootstrap and renders its first screen', (tester) async {
+  testWidgets('app boots via bootstrap and renders its first screen',
+      (tester) async {
     // Full real startup path: global error hooks → DI → services.init() → runApp(App()).
     await bootstrap(AppEnv.dev);
     await tester.pumpAndSettle();
