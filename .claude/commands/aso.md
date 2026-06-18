@@ -16,9 +16,10 @@ Two engines, separate lanes:
 4. `get_keyword_scores` on the candidates → real **difficulty + traffic** to pick the winners.
 5. (Optional) `analyze_reviews` on top competitors → unmet-need gaps to target in copy.
 
-If `mcp-appstore` is unavailable: use `APPEEKY_API_KEY` (aso-skills live mode) if set; else fall
-back to `WebSearch` of real competitor listings and **mark the output LOW-CONFIDENCE (no live
-data)**. Never fabricate keyword volumes/difficulty from training knowledge.
+If the **Appeeky** MCP server is registered (author set `APPEEKY_API_KEY`), use its first-party
+data too and cross-check it against `mcp-appstore`. If neither is available, fall back to
+`WebSearch` of real competitor listings and **mark the output LOW-CONFIDENCE (no live data)**.
+Never fabricate keyword volumes/difficulty from training knowledge.
 
 ## Output (every keyword tagged with its source: tool + competitor/term)
 1. **Competitor gap table** — competitors, their primary keywords, the gaps we can own.

@@ -140,6 +140,11 @@ if command -v claude >/dev/null 2>&1 && claude mcp list 2>/dev/null | grep -q mc
 else
   note "mcp-appstore not found  →  the keyless live ASO data engine. Re-run ./setup.zsh (Phase 3)"
 fi
+if command -v claude >/dev/null 2>&1 && claude mcp list 2>/dev/null | grep -q appeeky; then
+  ok "appeeky present (live first-party ASO data — optional upgrade)"
+else
+  note "appeeky not registered (optional) → put APPEEKY_API_KEY in ~/.appfactory/secrets.env, re-run ./setup.zsh"
+fi
 
 hd "Test targets"
 if command -v flutter >/dev/null 2>&1; then

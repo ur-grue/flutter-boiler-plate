@@ -531,6 +531,22 @@ verify_skills() {
     || warn "ui-ux-pro-max not found in settings.json enabledPlugins"
 }
 
+# Optional Appeeky upgrade: if APPEEKY_API_KEY is in the vault, register Appeeky's MCP server
+# so aso-skills gets live FIRST-PARTY App Store data on top of keyless mcp-appstore. Additive,
+# idempotent, non-fatal. The key is read from the env (sourced from the vault) — NEVER hardcoded
+# and never written into the repo. Runs every time (the key may be added after first install).
+register_appeeky_mcp() {
+  if [[ -z "${APPEEKY_API_KEY:-}" ]]; then
+    info "no APPEEKY_API_KEY in vault — keyless mcp-appstore still gives live data (fine)"
+    return 0
+  fi
+  command -v claude >/dev/null 2>&1 || return 0
+  claude mcp add --scope user --transport http appeeky https://mcp.appeeky.com/mcp \
+    --header "Authorization: Bearer ${APPEEKY_API_KEY}" >/dev/null 2>&1 \
+    && ok "registered Appeeky MCP server (live first-party ASO data)" \
+    || info "appeeky MCP already registered (or 'claude mcp add' unavailable)"
+}
+
 if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
   if [[ ! -f "$PLUGINS_MARK" || $REINSTALL -eq 1 ]]; then
     install_plugin "obra/superpowers-marketplace"  "superpowers-marketplace" "superpowers"
@@ -545,6 +561,7 @@ if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
     info "plugins already installed (--reinstall to redo)"
   fi
   verify_skills
+  register_appeeky_mcp
 elif (( DO_PLUGINS )); then
   warn "claude CLI not found — skipping plugin install"
 else
