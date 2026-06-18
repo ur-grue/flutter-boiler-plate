@@ -92,6 +92,24 @@ else
 fi
 
 hd "Project setup"
+# Phantom-project guard. A stray `flutter create .` run in a SUBFOLDER (e.g. with the
+# terminal CWD = scripts/) scaffolds a whole default counter app there, with its own
+# pubspec.yaml — and IDEs/`flutter run` will launch THAT counter app instead of yours.
+# Flag any pubspec.yaml that isn't the repo-root one (ignoring generated/native trees).
+nested_pubspecs="$(find . -name pubspec.yaml \
+  -not -path './pubspec.yaml' \
+  -not -path './build/*' -not -path './.dart_tool/*' -not -path './.fvm/*' \
+  -not -path './ios/*' -not -path './macos/*' -not -path './android/*' \
+  -not -path './linux/*' -not -path './windows/*' -not -path '*/ephemeral/*' \
+  2>/dev/null)"
+if [[ -n "$nested_pubspecs" ]]; then
+  bad "Stray nested Flutter project(s) detected — these hijack the IDE/run:"
+  while IFS= read -r p; do [[ -n "$p" ]] && printf "      %s\n" "$p"; done <<< "$nested_pubspecs"
+  printf "      Fix: a 'flutter create .' was run in a subfolder. Delete that nested app\n"
+  printf "      (keep ONLY the repo-root pubspec.yaml), e.g.  rm -rf %s\n" "$(dirname "$(printf '%s' "$nested_pubspecs" | head -1)")/{pubspec.yaml,pubspec.lock,lib,test,build,.dart_tool}"
+else
+  ok "No stray nested Flutter projects"
+fi
 if [[ -d android || -d ios ]]; then
   ok "Native platform folders present"
   if grep -rqs "CoreLibraryDesugaringEnabled" android/app/build.gradle android/app/build.gradle.kts; then

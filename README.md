@@ -91,6 +91,11 @@ bash scripts/run.sh "iPhone 16"      # or target one from `flutter devices` (nam
 It refuses to run unless you're in the app's root (so it can't accidentally scaffold a
 default counter app). Runs keyless (mock data); passes `dart_define.dev.json` if present.
 
+> ⚠️ Only ever run `flutter create .` from the **repo root**. Running it from a subfolder
+> (e.g. `scripts/`) scaffolds a nested default counter app whose `pubspec.yaml` hijacks the
+> IDE/`flutter run` — so the *counter demo* launches instead of your app. `bash scripts/run.sh`
+> and `bash scripts/doctor.sh` now detect and refuse such stray nested projects.
+
 - **iOS Simulator** — fastest, no signing. Run `open -a Simulator` and **wait for it to
   finish booting** before you run — `-d "iPhone 16"` only matches a simulator that's
   already up, otherwise Flutter reports "no supported devices".
