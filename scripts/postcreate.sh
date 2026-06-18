@@ -51,7 +51,10 @@ if [[ -f "$KTS" ]]; then
   # desugaring flag inside compileOptions
   if grep -q "isCoreLibraryDesugaringEnabled" "$f"; then ok "desugaring flag present"
   elif grep -q "compileOptions {" "$f"; then
-    sed -i.bak "/compileOptions {/a\\        isCoreLibraryDesugaringEnabled = true" "$f" && ok "desugaring flag added"
+    tmp="$(mktemp)"
+    awk '{ print }
+         /compileOptions \{/ && !done { print "        isCoreLibraryDesugaringEnabled = true"; done=1 }' "$f" > "$tmp" \
+      && mv "$tmp" "$f" && ok "desugaring flag added"
   else note "Add 'isCoreLibraryDesugaringEnabled = true' to compileOptions in $f"; fi
   # desugar dependency (append a top-level dependencies block once)
   if grep -q "coreLibraryDesugaring(" "$f"; then ok "desugar dependency present"
@@ -68,7 +71,10 @@ elif [[ -f "$GRADLE" ]]; then
   else note "minSdk: set it to $MIN_SDK manually in $f"; fi
   if grep -q "coreLibraryDesugaringEnabled" "$f"; then ok "desugaring flag present"
   elif grep -q "compileOptions {" "$f"; then
-    sed -i.bak "/compileOptions {/a\\        coreLibraryDesugaringEnabled true" "$f" && ok "desugaring flag added"
+    tmp="$(mktemp)"
+    awk '{ print }
+         /compileOptions \{/ && !done { print "        coreLibraryDesugaringEnabled true"; done=1 }' "$f" > "$tmp" \
+      && mv "$tmp" "$f" && ok "desugaring flag added"
   else note "Add 'coreLibraryDesugaringEnabled true' to compileOptions in $f"; fi
   if grep -q "coreLibraryDesugaring " "$f"; then ok "desugar dependency present"
   else
