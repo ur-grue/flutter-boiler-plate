@@ -130,6 +130,11 @@ if [[ -d "$skills_dir/impeccable" ]]; then
 else
   note "impeccable not found  →  run: npx -y skills add pbakaus/impeccable --agent claude-code"
 fi
+if [[ -d "$skills_dir/aso-skills" ]]; then
+  ok "aso-skills present"
+else
+  note "aso-skills not found  →  run: npx -y skills add eronred/aso-skills --agent claude-code"
+fi
 
 hd "flutter doctor"
 if command -v flutter >/dev/null 2>&1; then

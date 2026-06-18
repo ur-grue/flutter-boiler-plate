@@ -9,7 +9,7 @@
 #   1. Central secrets  (~/.appfactory/secrets.env — entered ONCE)
 #   2. Claude Code config (.claude/settings*.json, docs/clean-code.md) — never
 #      clobbers this repo's Flutter CLAUDE.md / AGENTS.md
-#   3. Claude skills (superpowers · marketing-skills · gstack · impeccable)
+#   3. Claude skills (superpowers · marketing-skills · gstack · impeccable · aso-skills)
 #   4. Interview (app name · bundle id · idea · category)
 #   5. Scaffold (flutter create → rename → postcreate → dart_define → pub get)
 #   6. AI MVP build  (claude -p /mvp)
@@ -451,6 +451,23 @@ install_impeccable() {
   fi
 }
 
+# eronred/aso-skills — the ASO data engine (skills CLI; MIT). Keyless by default;
+# Appeeky is an OPTIONAL author-time key (never shipped). Non-fatal.
+# Pin via the manifest (appfactory/SKILLS.md): record the resolved version there —
+# the skills CLI may not accept a ref on add, so we don't over-engineer a lock here.
+install_aso_skills() {
+  if [[ -d "$HOME/.claude/skills/aso-skills" ]]; then
+    info "aso-skills already present"
+    return 0
+  fi
+  if gum spin --spinner pulse --title "installing aso-skills ..." \
+      -- npx -y skills add eronred/aso-skills --agent claude-code; then
+    ok "installed aso-skills"
+  else
+    warn "aso-skills install failed — run manually: npx -y skills add eronred/aso-skills --agent claude-code"
+  fi
+}
+
 # Confirm every skill/plugin landed so a missing one fails loudly, not silently.
 verify_skills() {
   info "verifying skill matrix ..."
@@ -460,6 +477,9 @@ verify_skills() {
   [[ -d "$HOME/.claude/skills/impeccable" ]] \
     && ok "impeccable present" \
     || warn "impeccable MISSING — install: npx -y skills add pbakaus/impeccable --agent claude-code"
+  [[ -d "$HOME/.claude/skills/aso-skills" ]] \
+    && ok "aso-skills present" \
+    || warn "aso-skills MISSING — install: npx -y skills add eronred/aso-skills --agent claude-code"
   grep -q '"superpowers@superpowers-marketplace"' .claude/settings.json 2>/dev/null \
     && ok "superpowers enabled in settings.json" \
     || warn "superpowers not found in settings.json enabledPlugins"
@@ -474,6 +494,7 @@ if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
     install_plugin "coreyhaines31/marketingskills" "marketingskills"         "marketing-skills"
     install_gstack
     install_impeccable
+    install_aso_skills
     touch "$PLUGINS_MARK"
   else
     info "plugins already installed (--reinstall to redo)"
