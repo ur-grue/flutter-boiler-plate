@@ -13,6 +13,8 @@ class AppConfig {
     required this.admobAppIdAndroid,
     required this.admobAppIdIos,
     required this.revenueCatApiKey,
+    required this.privacyUrl,
+    required this.termsUrl,
   });
 
   /// Builds config from compile-time environment values for the given [env].
@@ -30,6 +32,8 @@ class AppConfig {
       admobAppIdAndroid: const String.fromEnvironment('ADMOB_APP_ID_ANDROID'),
       admobAppIdIos: const String.fromEnvironment('ADMOB_APP_ID_IOS'),
       revenueCatApiKey: const String.fromEnvironment('REVENUECAT_API_KEY'),
+      privacyUrl: const String.fromEnvironment('PRIVACY_URL'),
+      termsUrl: const String.fromEnvironment('TERMS_URL'),
     );
   }
 
@@ -42,6 +46,9 @@ class AppConfig {
 
   final bool purchasesEnabled;
   final String revenueCatApiKey;
+
+  final String privacyUrl;
+  final String termsUrl;
 
   /// Ads only run when explicitly enabled — never in the keyless default.
   bool get useRealAds => adsEnabled;
