@@ -4,7 +4,6 @@ import 'package:flutter_boilerplate/core/l10n/l10n.dart';
 import 'package:flutter_boilerplate/core/router/routes.dart';
 import 'package:flutter_boilerplate/core/theme/app_seed_colors.dart';
 import 'package:flutter_boilerplate/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:flutter_boilerplate/features/settings/domain/app_settings.dart';
 import 'package:flutter_boilerplate/features/settings/presentation/cubit/settings_cubit.dart';
 import 'package:flutter_boilerplate/features/settings/presentation/cubit/settings_state.dart';
 import 'package:flutter_boilerplate/features/settings/presentation/cubit/subscription_cubit.dart';
@@ -18,7 +17,7 @@ class SettingsPage extends StatelessWidget {
     Locale('en'),
     Locale('de'),
     Locale('es'),
-    Locale('ar')
+    Locale('ar'),
   ];
 
   @override

@@ -21,8 +21,10 @@ class NotesRepositoryImpl implements NotesRepository {
 
   @override
   Future<Result<Note>> create({required String title, required String body}) =>
-      guardAsync(() async =>
-          (await _dataSource.create(title: title, body: body)).toEntity());
+      guardAsync(
+        () async =>
+            (await _dataSource.create(title: title, body: body)).toEntity(),
+      );
 
   @override
   Future<Result<Note>> update(Note note) => guardAsync(

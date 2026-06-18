@@ -66,7 +66,8 @@ class RevenueCatPurchaseService implements PurchaseService {
     try {
       final offerings = await Purchases.getOfferings();
       Package? pkg;
-      for (final p in offerings.current?.availablePackages ?? const []) {
+      for (final p
+          in offerings.current?.availablePackages ?? const <Package>[]) {
         if (p.identifier == package.id) {
           pkg = p;
           break;
