@@ -37,6 +37,21 @@ if [[ ! -f pubspec.yaml || ! -f lib/main.dart ]]; then
   exit 1
 fi
 
+# Phantom-project guard: a stray `flutter create .` in a subfolder leaves a nested
+# pubspec.yaml that hijacks the IDE/run (launches a default counter app). Refuse until
+# it's removed so you never run the wrong app.
+nested_pubspecs="$(find . -name pubspec.yaml -not -path './pubspec.yaml' \
+  -not -path './build/*' -not -path './.dart_tool/*' -not -path './.fvm/*' \
+  -not -path './ios/*' -not -path './macos/*' -not -path './android/*' \
+  -not -path './linux/*' -not -path './windows/*' -not -path '*/ephemeral/*' 2>/dev/null)"
+if [[ -n "$nested_pubspecs" ]]; then
+  echo "✗ Stray nested Flutter project(s) found — they hijack which app runs:"
+  echo "$nested_pubspecs" | sed 's/^/      /'
+  echo "  A 'flutter create .' was run in a subfolder. Delete that nested app (keep only"
+  echo "  the repo-root pubspec.yaml), then re-run. See: bash scripts/doctor.sh"
+  exit 1
+fi
+
 # 1. Native folders (first run only). Won't overwrite existing lib/ code.
 if [[ ! -d ios && ! -d android ]]; then
   echo "▸ First run: generating native folders (flutter create .)"
