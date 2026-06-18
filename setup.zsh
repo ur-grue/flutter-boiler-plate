@@ -9,7 +9,7 @@
 #   1. Central secrets  (~/.appfactory/secrets.env — entered ONCE)
 #   2. Claude Code config (.claude/settings*.json, docs/clean-code.md) — never
 #      clobbers this repo's Flutter CLAUDE.md / AGENTS.md
-#   3. Claude skills (superpowers · marketing-skills · gstack · impeccable · aso-skills)
+#   3. Claude skills (superpowers · marketing-skills · ui-ux-pro-max · gstack · impeccable · aso-skills)
 #   4. Interview (app name · bundle id · idea · category)
 #   5. Scaffold (flutter create → rename → postcreate → dart_define → pub get)
 #   6. AI MVP build  (claude -p /mvp)
@@ -486,12 +486,16 @@ verify_skills() {
   grep -q '"marketing-skills@marketingskills"' .claude/settings.json 2>/dev/null \
     && ok "marketing-skills enabled in settings.json" \
     || warn "marketing-skills not found in settings.json enabledPlugins"
+  grep -q '"ui-ux-pro-max@ui-ux-pro-max-skill"' .claude/settings.json 2>/dev/null \
+    && ok "ui-ux-pro-max enabled in settings.json" \
+    || warn "ui-ux-pro-max not found in settings.json enabledPlugins"
 }
 
 if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
   if [[ ! -f "$PLUGINS_MARK" || $REINSTALL -eq 1 ]]; then
     install_plugin "obra/superpowers-marketplace"  "superpowers-marketplace" "superpowers"
     install_plugin "coreyhaines31/marketingskills" "marketingskills"         "marketing-skills"
+    install_plugin "nextlevelbuilder/ui-ux-pro-max-skill" "ui-ux-pro-max-skill" "ui-ux-pro-max"
     install_gstack
     install_impeccable
     install_aso_skills
