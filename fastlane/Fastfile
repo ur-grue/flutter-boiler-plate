@@ -1,0 +1,56 @@
+# Fastfile — the one-command last mile. SAFE DEFAULT: uploads to TestFlight / Play internal,
+# never auto-submits for public review (you press "Submit" yourself). Credentials are read from
+# the vault env (see appfactory/secrets.env.example). This is a starting scaffold — verify the
+# action params on your Mac (`fastlane ios beta`) and adjust as Apple/Google evolve.
+#
+#   fastlane ios beta        # build + sign + upload binary to TestFlight (no public submit)
+#   fastlane ios metadata    # upload store metadata + screenshots only (no binary, no submit)
+#   fastlane android beta    # build AAB + upload to the Play internal track
+
+def asc_key
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"],
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_filepath: ENV["ASC_KEY_PATH"],
+    in_house: false,
+  )
+end
+
+platform :ios do
+  desc "Build + sign + upload to TestFlight (no public submission)"
+  lane :beta do
+    api_key = asc_key
+    match(type: "appstore", readonly: true, git_url: ENV["MATCH_GIT_URL"]) if ENV["MATCH_GIT_URL"]
+    sh("cd .. && flutter build ipa --release")
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: "../build/ios/ipa/Runner.ipa",
+      skip_submission: true,            # stays in TestFlight; you submit when ready
+      skip_waiting_for_build_processing: true,
+    )
+  end
+
+  desc "Upload App Store metadata + screenshots only (no binary, no submission)"
+  lane :metadata do
+    deliver(
+      api_key: asc_key,
+      skip_binary_upload: true,
+      submit_for_review: false,         # SAFE: never auto-submits for review
+      force: true,                      # no interactive HTML preview prompt
+      run_precheck_before_submit: false,
+    )
+  end
+end
+
+platform :android do
+  desc "Build AAB + upload to the Play internal track (no production rollout)"
+  lane :beta do
+    sh("cd .. && flutter build appbundle --release")
+    upload_to_play_store(
+      track: "internal",                # SAFE: internal testers, not production
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_apk: true,
+      release_status: "draft",
+    )
+  end
+end

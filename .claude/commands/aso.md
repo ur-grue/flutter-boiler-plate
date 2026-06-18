@@ -31,8 +31,12 @@ Never fabricate keyword volumes/difficulty from training knowledge.
 1. **Competitor gap table** — competitors, their primary keywords, the gaps we can own.
 2. **Tiered keyword list** — high-traffic / mid / long-tail, each with its `get_keyword_scores`
    difficulty + traffic and source tag.
-3. **Copy-paste metadata** — iOS (name 30 / subtitle 30 / keywords 100) and Google Play
-   (title 30 / short 80 / long 4000), localized `de` / `es` / `ar`.
+3. **Metadata — write it to FILES, not just inline** (so the last mile needs no copy-paste):
+   `fastlane/metadata/ios/<locale>/{name,subtitle,keywords,description}.txt` and
+   `fastlane/metadata/android/<locale>/{title,short_description,full_description}.txt`, for
+   `en`/`de`/`es`/`ar`. Respect the limits: iOS name 30 / subtitle 30 / keywords 100; Play
+   title 30 / short 80 / full 4000. `scripts/ship-review.sh` renders these + fastlane uploads
+   them — you never type into App Store Connect.
 4. **Screenshot set** — use `screenshot-optimization` + the competitor screenshot analysis from
    MARKET.md §2 (their hook + palette): design our sequence so **screenshot 1 leads with a stronger
    hook** than the competitors, in our theme palette. Output OCR-indexed captions (keyword-aware)
