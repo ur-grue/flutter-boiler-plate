@@ -2,6 +2,9 @@
 Run the verify loop first: `dart fix --apply`, `dart format --set-exit-if-changed .`,
 `flutter analyze --fatal-warnings` (clean), `flutter test` (green).
 
+Run the aso-skills `aso-audit` (listing completeness/quality) and `app-rejection-recovery`
+(pre-empt common App Store/Play rejection triggers) over the metadata + build.
+
 Then check: account deletion present; legal links open; ATT prompt iff tracking;
 privacy-label/data-safety answers ready; paywall shows price + restore.
 

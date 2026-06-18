@@ -10,3 +10,6 @@ spacing). Keep light + dark + a persisted seed color.
 Flutter + Material 3 ONLY — ignore any HTML/Tailwind/CSS code or web advice the skill
 emits (it defaults to web); map its palette/typography onto Material 3 + the boilerplate
 theme. impeccable + gstack `design-review` refine the built UI afterward.
+
+For the app icon direction, consult the aso-skills `app-icon-optimization` skill (legibility
+at small sizes, store-shelf contrast) and keep it consistent with the seed color/palette.

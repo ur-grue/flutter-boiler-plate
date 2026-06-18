@@ -106,6 +106,28 @@ in the app** and never goes into `dart_define`.
 Keep these lanes separate: pull data with `mcp-appstore`, interpret it with `aso-skills`,
 write voice/launch copy with `marketing-skills`. Never source keyword numbers from model memory.
 
+### aso-skills → command map (which of the 40 skills we wire, and where)
+
+Build-time (inside `/mvp`):
+- **/spec:** `app-marketing-context`, `category-positioning`, `monetization-strategy`,
+  `onboarding-optimization`, `retention-optimization`.
+- **/validate:** `aso-router`, `competitor-analysis`, `market-pulse`, `market-movers`,
+  `category-positioning`.
+- **/aso:** `keyword-research`, `metadata-optimization`, `competitor-analysis`, `android-aso`,
+  `seasonal-aso`, `screenshot-optimization`, `localization`, `category-positioning`.
+- **/theme:** `app-icon-optimization`.
+- **/wire-paywall:** `monetization-strategy`, `paywall-optimization`, `subscription-lifecycle`,
+  `rating-prompt-strategy`.
+- **/ship-check:** `aso-audit`, `app-rejection-recovery`.
+
+Post-launch (in **/growth**, NOT in `/mvp` — they need a live app + real data/budget):
+`app-launch`, `apple-search-ads`, `ua-campaign`, `press-and-pr`, `creator-ugc-marketing`,
+`referral-program`, `web-to-app-funnel`, `app-store-featured`, `in-app-events`, `app-clips`,
+`ab-test-store-listing`, `custom-product-pages`, `app-preview-video`, `review-management`,
+`app-analytics`, `attribution-setup`, `asc-metrics`, `crash-analytics`, `competitor-tracking`.
+
+(`aso-router` + `app-marketing-context` are the Foundation/entry skills used across all of the above.)
+
 **Design lane (decide → refine → QA):** `ui-ux-pro-max` *decides* the design system up
 front (/theme); `impeccable` *refines* the built UI (polish / anti-slop); gstack
 `design-review` + the `design-critic` agent *QA* the result. Don't blur these.

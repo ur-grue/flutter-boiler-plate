@@ -2,7 +2,10 @@
 
 Two engines, separate lanes:
 - **Live data → `mcp-appstore` MCP tools** (keyless; scrapes the real App Store + Play Store).
-- **Method/routing → `aso-skills`** (`aso-router`; frameworks for interpreting the data).
+- **Method/routing → `aso-skills`** via `aso-router`, which dispatches to: `keyword-research`,
+  `metadata-optimization`, `competitor-analysis`, `android-aso` (Play Store specifics — we ship
+  Android too), `seasonal-aso` (timing), `screenshot-optimization`, `localization` (de/es/ar
+  store metadata, matching the app's locales), `category-positioning`.
 - **Copy/voice → `marketing-skills`** only — never for the keyword data itself.
 
 ## Get the data FIRST (mcp-appstore tools) — do not skip this

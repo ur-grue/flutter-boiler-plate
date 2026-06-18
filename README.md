@@ -177,7 +177,8 @@ listing (use the `/aso` output), and pressing *Submit*. See
 | `/swap-backend supabase` | Replace mocks with a real Supabase backend |
 | `/aso` | Store keywords + metadata from **live** store data (mcp-appstore: real keyword difficulty/traffic + competitors), not model guesses |
 | `/legal` | Privacy policy + terms pages |
-| `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes |
+| `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes (incl. aso-audit + rejection check) |
+| `/growth` | Post-launch growth/UA/analytics/retention (aso-skills) — run after the app is live |
 
 Secrets stay in `~/.appfactory/secrets.env` only (never committed); `setup.zsh` copies the
 client-safe ones into `dart_define.dev.json`. Full details:
