@@ -109,6 +109,17 @@ default counter app). Runs keyless (mock data); passes `dart_define.dev.json` if
 > Desktop/web targets are intentionally absent — `google_mobile_ads`/`purchases_flutter` (and
 > some auth plugins) don't support them, so those builds fail. Test on a mobile target.
 
+### Store screenshots
+
+```bash
+bash scripts/screenshots.sh                  # boots a sim and captures them automatically
+bash scripts/screenshots.sh "iPhone 16 Pro"  # or pick the device by name
+```
+
+No Photoshop: this boots a simulator, drives the real app, and writes the PNGs to
+`fastlane/screenshots/<locale>/` for the ship pipeline. Add more marketing screens in
+`integration_test/screenshots_test.dart`.
+
 ## App Factory — from idea to the App Store (optional)
 
 The **App Factory** is the hands-off path: you describe an app in plain language and the

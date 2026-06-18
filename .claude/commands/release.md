@@ -3,7 +3,8 @@
    (`bash scripts/smoke-launch.sh` — the app must actually start).
 2. Assets for the store (so the last mile needs no file-opening/copying):
    - `/aso` has written `fastlane/metadata/{ios,android}/<locale>/*.txt`.
-   - `bash scripts/screenshots.sh` writes framed `fastlane/screenshots/<locale>/*.png`.
+   - `bash scripts/screenshots.sh` captures them on a simulator (no Photoshop) and writes
+     framed `fastlane/screenshots/<locale>/*.png` for the upload.
    - `bash scripts/ship-review.sh` renders icon + screenshots + metadata + research into one
      local HTML page — review it in the browser before uploading.
 3. Build + upload via **fastlane** (reads credentials from the vault; see `fastlane/README.md`).
