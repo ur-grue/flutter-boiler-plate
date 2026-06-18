@@ -77,6 +77,28 @@ Extra native config is needed **only when you turn features on**: AdMob app id i
 `AndroidManifest.xml`/`Info.plist`, Android 13+ notification permission — see
 [docs/SECURITY.md](docs/SECURITY.md).
 
+## Testing on a device or simulator
+
+One command sets up native folders + deps and runs the app:
+
+```bash
+bash scripts/run.sh                  # then pick a device when prompted
+bash scripts/run.sh "iPhone 16"      # or target one from `flutter devices` (name or id)
+```
+
+It refuses to run unless you're in the app's root (so it can't accidentally scaffold a
+default counter app). Runs keyless (mock data); passes `dart_define.dev.json` if present.
+
+- **iOS Simulator** — fastest, no signing. `open -a Simulator`, then run.
+- **Real iPhone** — one-time: open `ios/Runner.xcworkspace` → *Runner* → *Signing &
+  Capabilities* → pick your Apple ID team. Then `bash scripts/run.sh "<your iPhone>"`.
+- **Android** (set up later) — install Android Studio (`brew install --cask android-studio`),
+  open it once to install the SDK, then `flutter doctor --android-licenses`; create an
+  emulator in Device Manager. `bash scripts/doctor.sh` shows your live targets anytime.
+
+> Tip: avoid `macos`/`chrome` targets — `google_mobile_ads`/`purchases_flutter` don't
+> support them, so those builds may fail. Test on a mobile target.
+
 ## App Factory — from idea to the App Store (optional)
 
 The **App Factory** is the hands-off path: you describe an app in plain language and the

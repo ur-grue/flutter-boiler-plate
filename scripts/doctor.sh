@@ -136,6 +136,16 @@ else
   note "aso-skills not found  →  run: npx -y skills add eronred/aso-skills --agent claude-code"
 fi
 
+hd "Test targets"
+if command -v flutter >/dev/null 2>&1; then
+  flutter devices 2>/dev/null | sed 's/^/  /' || true
+  printf "  Run it:   bash scripts/run.sh   (or: bash scripts/run.sh \"iPhone 16\")\n"
+  printf "  iOS sim needs no signing; a real iPhone needs a one-time Xcode signing team.\n"
+  printf "  Android:  brew install --cask android-studio → open once for the SDK → flutter doctor --android-licenses\n"
+else
+  printf "  (flutter missing — install it first)\n"
+fi
+
 hd "flutter doctor"
 if command -v flutter >/dev/null 2>&1; then
   flutter doctor || true
