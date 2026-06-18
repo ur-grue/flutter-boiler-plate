@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_boilerplate/core/router/feature_routes.dart';
 import 'package:flutter_boilerplate/core/router/go_router_refresh_stream.dart';
 import 'package:flutter_boilerplate/core/router/routes.dart';
 import 'package:flutter_boilerplate/core/storage/key_value_store.dart';
@@ -7,8 +8,6 @@ import 'package:flutter_boilerplate/features/auth/presentation/cubit/auth_cubit.
 import 'package:flutter_boilerplate/features/auth/presentation/cubit/auth_state.dart';
 import 'package:flutter_boilerplate/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:flutter_boilerplate/features/auth/presentation/pages/splash_page.dart';
-import 'package:flutter_boilerplate/features/example_notes/presentation/pages/note_editor_page.dart';
-import 'package:flutter_boilerplate/features/example_notes/presentation/pages/notes_list_page.dart';
 import 'package:flutter_boilerplate/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:flutter_boilerplate/features/settings/presentation/pages/notifications_demo_page.dart';
 import 'package:flutter_boilerplate/features/settings/presentation/pages/paywall_page.dart';
@@ -79,24 +78,8 @@ GoRouter createRouter({
         name: Routes.signIn,
         builder: (_, __) => const SignInPage(),
       ),
-      GoRoute(
-        path: Routes.notesPath,
-        name: Routes.notes,
-        builder: (_, __) => const NotesListPage(),
-        routes: [
-          GoRoute(
-            path: Routes.noteNewPath,
-            name: Routes.noteNew,
-            builder: (_, __) => const NoteEditorPage(),
-          ),
-          GoRoute(
-            path: Routes.noteEditPath,
-            name: Routes.noteEdit,
-            builder: (_, state) =>
-                NoteEditorPage(id: state.pathParameters['id']),
-          ),
-        ],
-      ),
+      // Feature routes (each feature owns its own; see feature_routes.dart).
+      ...featureRoutes(),
       GoRoute(
         path: Routes.settingsPath,
         name: Routes.settings,

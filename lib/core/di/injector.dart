@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_boilerplate/core/config/app_config.dart';
+import 'package:flutter_boilerplate/core/di/feature_modules.dart';
 import 'package:flutter_boilerplate/core/network/auth_interceptor.dart';
 import 'package:flutter_boilerplate/core/network/dio_client.dart';
 import 'package:flutter_boilerplate/core/storage/flutter_secure_store.dart';
@@ -10,11 +11,6 @@ import 'package:flutter_boilerplate/features/auth/data/auth_repository_impl.dart
 import 'package:flutter_boilerplate/features/auth/data/mock_auth_data_source.dart';
 import 'package:flutter_boilerplate/features/auth/domain/auth_repository.dart';
 import 'package:flutter_boilerplate/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:flutter_boilerplate/features/example_notes/data/mock_notes_data_source.dart';
-import 'package:flutter_boilerplate/features/example_notes/data/notes_repository_impl.dart';
-import 'package:flutter_boilerplate/features/example_notes/domain/notes_repository.dart';
-import 'package:flutter_boilerplate/features/example_notes/presentation/cubit/note_editor_cubit.dart';
-import 'package:flutter_boilerplate/features/example_notes/presentation/cubit/notes_cubit.dart';
 import 'package:flutter_boilerplate/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:flutter_boilerplate/features/settings/data/settings_repository.dart';
 import 'package:flutter_boilerplate/features/settings/data/settings_repository_impl.dart';
@@ -74,9 +70,6 @@ Future<void> configureDependencies(AppConfig config) async {
     )
     ..registerLazySingleton<SettingsRepository>(
       () => SettingsRepositoryImpl(getIt<KeyValueStore>()),
-    )
-    ..registerLazySingleton<NotesRepository>(
-      () => NotesRepositoryImpl(MockNotesDataSource()),
     );
 
   // --- global cubits (singletons) ---
@@ -90,14 +83,14 @@ Future<void> configureDependencies(AppConfig config) async {
     );
 
   // --- per-screen cubits (factories) ---
-  getIt
-    ..registerFactory<OnboardingCubit>(
-      () => OnboardingCubit(getIt<KeyValueStore>()),
-    )
-    ..registerFactory<NotesCubit>(() => NotesCubit(getIt<NotesRepository>()))
-    ..registerFactory<NoteEditorCubit>(
-      () => NoteEditorCubit(getIt<NotesRepository>()),
-    );
+  getIt.registerFactory<OnboardingCubit>(
+    () => OnboardingCubit(getIt<KeyValueStore>()),
+  );
+
+  // --- feature modules (each feature owns its own DI; see feature_modules.dart) ---
+  for (final registerFeature in featureModules) {
+    registerFeature(getIt);
+  }
 
   // Clear an expired session when the API rejects the token.
   authInterceptor.onUnauthorized = () => getIt<AuthCubit>().signOut();
