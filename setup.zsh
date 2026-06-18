@@ -201,8 +201,21 @@ ensure_claude() {
   fi
 }
 
+ensure_gh() {
+  command -v gh >/dev/null 2>&1 && { ok "GitHub CLI present"; return 0; }
+  warn "GitHub CLI (gh) not found — used to create your PRIVATE app repo automatically."
+  if confirm "Install GitHub CLI via Homebrew (brew install gh)?"; then
+    gum spin --spinner dot --title "installing gh…" -- brew install gh \
+      || warn "gh install failed — install manually: https://cli.github.com"
+    command -v gh >/dev/null 2>&1 && ok "gh installed" || warn "gh still missing — you'll create the repo by hand."
+  else
+    warn "Skipping gh — you'll create the private repo manually (instructions shown later)."
+  fi
+}
+
 ensure_flutter
 ensure_claude
+ensure_gh
 command -v git >/dev/null 2>&1 || die "git not found — install Xcode Command Line Tools: xcode-select --install"
 command -v jq  >/dev/null 2>&1 || info "jq not found (optional, used for session tracking)"
 
@@ -564,6 +577,100 @@ cat > APPFACTORY_INPUTS.md <<MD
 MD
 
 # ──────────────────────────────────────────────────────────────────────────────
+# PHASE 5b — isolate the app's git repo (PRIVATE), detach from the factory
+# ──────────────────────────────────────────────────────────────────────────────
+section "5b" "ISOLATING APP REPO"
+
+# GitHub-safe slug from the app name ("My App" → "my-app"); fall back to bundle tail.
+REPO_SLUG="$(printf '%s' "$APP_NAME" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/^-*//; s/-*$//')"
+[[ -n "$REPO_SLUG" ]] || REPO_SLUG="${BUNDLE_ID##*.}"
+
+# 1. Detach from the factory. If origin still points at the template, a push would
+#    overwrite the FACTORY with your app — sever it and start a fresh history.
+ORIGIN_URL="$(git remote get-url origin 2>/dev/null || true)"
+if [[ "$ORIGIN_URL" == *flutter-boiler-plate* ]]; then
+  warn "origin points at the FACTORY template — detaching (fresh git history) so app code can never land there"
+  rm -rf .git
+fi
+
+# 2. Your repo describes YOUR app, not the template. Replace the factory README.
+cat > README.md <<MD
+# $APP_NAME
+
+> $IDEA
+
+A $CATEGORY app for iOS & Android, built with Flutter.
+
+## Develop
+
+\`\`\`bash
+bash scripts/run.sh        # boots a simulator and runs (mock data, no keys needed)
+flutter analyze && flutter test
+\`\`\`
+
+Build-time config is injected via \`dart_define.dev.json\` (\`--dart-define\`); secrets never
+live in source. See \`AGENTS.md\` for the architecture and the add-a-feature recipe.
+
+---
+*Bundle id: \`$BUNDLE_ID\` · scaffolded with the Flutter App Factory.*
+MD
+ok "Wrote an app-specific README for $APP_NAME"
+
+# 3. Fresh repo + base commit (so the new private remote has content to receive).
+if [[ ! -d .git ]]; then
+  git init -q
+  git add -A
+  git -c user.name="App Factory" -c user.email="setup@appfactory.local" \
+      -c commit.gpgsign=false commit -qm "Initial commit: $APP_NAME" 2>/dev/null \
+    || warn "couldn't make the base commit (set git user.name/email) — commit before pushing"
+fi
+
+# 4. Create a PRIVATE GitHub repo and point origin at it. Idempotent, non-fatal.
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  if git remote get-url origin >/dev/null 2>&1; then
+    # Already has its own remote (e.g. "Use this template"). Enforce private.
+    VIS="$(gh repo view --json visibility -q .visibility 2>/dev/null || echo UNKNOWN)"
+    if [[ "$VIS" == "PUBLIC" ]]; then
+      warn "your app repo is PUBLIC — app code/secrets should not be."
+      if confirm "Make it PRIVATE now?"; then
+        gh repo edit --visibility private --accept-visibility-change-consequences >/dev/null 2>&1 \
+          && ok "repo set to private" || warn "couldn't change visibility — set it private in the GitHub UI"
+      fi
+    else
+      ok "app repo is already non-public ($VIS)"
+    fi
+  elif confirm "Create PRIVATE GitHub repo '$REPO_SLUG' and set it as origin?"; then
+    gum spin --spinner dot --title "gh repo create $REPO_SLUG (private)" -- \
+      gh repo create "$REPO_SLUG" --private --source=. --remote=origin --description "$IDEA" \
+      && ok "Private repo created: $REPO_SLUG" \
+      || warn "gh repo create failed — make one and run: git remote add origin <url>"
+  fi
+else
+  warn "gh not authenticated — leaving origin UNSET so nothing can be pushed to the factory."
+  info "Create your private repo with:"
+  echo "    gh repo create $REPO_SLUG --private --source=. --remote=origin --description \"$IDEA\""
+  echo "    (or run 'gh auth login' and re-run, or 'git remote add origin <url>')"
+fi
+
+# 5. Defense in depth: refuse ANY push to the factory, whatever origin says.
+mkdir -p .git/hooks
+cat > .git/hooks/pre-push <<'HOOK'
+#!/bin/sh
+# Installed by App Factory setup.zsh — never push app code to the template repo.
+remote_url="$2"
+case "$remote_url" in
+  *flutter-boiler-plate*)
+    echo "✖ Refusing to push to the App Factory template ($remote_url)." >&2
+    echo "  Re-home to your own PRIVATE repo first:" >&2
+    echo "    gh repo create <app> --private --source=. --remote=origin" >&2
+    exit 1 ;;
+esac
+exit 0
+HOOK
+chmod +x .git/hooks/pre-push
+ok "Installed pre-push guard (blocks any push to the factory)"
+
+# ──────────────────────────────────────────────────────────────────────────────
 # PHASE 6 — AI MVP build
 # ──────────────────────────────────────────────────────────────────────────────
 if (( DO_BUILD )) && command -v claude >/dev/null 2>&1; then
@@ -590,11 +697,13 @@ gum style --foreground "$GREEN" --bold \
   "◢◤  SYSTEM ONLINE  ◥◣" \
   "" \
   "$APP_NAME  ·  $BUNDLE_ID" \
+  "repo: ${REPO_SLUG:-<unset>} (private)" \
   "" \
   "next:" \
-  "  1. test:     flutter run --dart-define-from-file=dart_define.dev.json" \
+  "  1. test:     bash scripts/run.sh" \
   "  2. verify:   flutter analyze && flutter test" \
-  "  3. ship:     ./ship.sh"
+  "  3. push:     git push -u origin main   (your private repo; factory is blocked)" \
+  "  4. ship:     ./ship.sh"
 echo
 
 # ── idea → ship journey (verbose, for first-time users) ──────────────────────────

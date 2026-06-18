@@ -135,7 +135,12 @@ First run installs the toolchain (gum, Flutter, Claude CLI) and skills, then cre
 `./setup.zsh` again. You only ever do this once per machine.
 
 **Stage 1 — Describe your app (30 seconds).** The script asks four questions: app name,
-bundle id (e.g. `com.you.app`), your one-line idea, and the App Store category.
+bundle id (e.g. `com.you.app`), your one-line idea, and the App Store category. It then
+**isolates your app's git repo**: if `origin` still points at this factory template it's
+detached (fresh history) so app code can never overwrite the template, an app-specific
+`README` is written, and — when the GitHub CLI is signed in — a **private** repo named after
+your app is created and set as `origin` (description = your idea). A `pre-push` hook is
+installed that hard-blocks any push to the factory, as a backstop.
 
 **Stage 2 — Claude builds the MVP (unattended).** `setup.zsh` hands off to **`/mvp`**, which
 runs end-to-end and **stops for your review**:
