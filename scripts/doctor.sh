@@ -135,6 +135,11 @@ if [[ -d "$skills_dir/aso-skills" ]]; then
 else
   note "aso-skills not found  →  run: npx -y skills add eronred/aso-skills --agent claude-code"
 fi
+if command -v claude >/dev/null 2>&1 && claude mcp list 2>/dev/null | grep -q mcp-appstore; then
+  ok "mcp-appstore present (keyless live ASO data)"
+else
+  note "mcp-appstore not found  →  the keyless live ASO data engine. Re-run ./setup.zsh (Phase 3)"
+fi
 
 hd "Test targets"
 if command -v flutter >/dev/null 2>&1; then

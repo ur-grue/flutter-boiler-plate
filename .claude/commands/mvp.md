@@ -30,8 +30,11 @@ Do, in order:
 4. /swap-backend supabase  (auth + main data) + in-app account deletion.  → commit
 5. /wire-paywall  (entitlement "premium").  → commit
 6. In parallel (no shared code): /legal and /aso.
-   - Strengthen /aso with the `marketing-skills` plugin (coreyhaines31/marketingskills):
-     store keywords, description copy, and positioning.  → commit
+   - /aso must use REAL live data: pull it with the `mcp-appstore` MCP tools (keyless —
+     `get_keyword_scores`, `analyze_top_keywords`, `get_similar_apps`, `get_pricing_details`),
+     and use `aso-skills` (`aso-router`) to interpret it. Appeeky if keyed; `WebSearch` only as
+     last resort (then mark LOW-CONFIDENCE). Do NOT invent keywords from memory. Use
+     `marketing-skills` only for the description voice/positioning copy.  → commit
 7. UI polish pass (anti-slop): run gstack `design-review` AND the `impeccable`
    skill to fix spacing, visual hierarchy, and AI-slop patterns.  → commit
 8. Quality gate: run `/simplify` (reuse/efficiency cleanup), gstack `review` (code review),

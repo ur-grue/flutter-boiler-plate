@@ -175,7 +175,7 @@ listing (use the `/aso` output), and pressing *Submit*. See
 | `/theme` | Regenerate the Material 3 theme |
 | `/wire-paywall` | (Re)wire RevenueCat (entitlement `premium`) |
 | `/swap-backend supabase` | Replace mocks with a real Supabase backend |
-| `/aso` | Store keywords + description (App Store Optimization) |
+| `/aso` | Store keywords + metadata from **live** store data (mcp-appstore: real keyword difficulty/traffic + competitors), not model guesses |
 | `/legal` | Privacy policy + terms pages |
 | `/ship-check` | Pre-submit gate → PASS/FAIL + top fixes |
 

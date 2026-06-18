@@ -9,7 +9,7 @@
 #   1. Central secrets  (~/.appfactory/secrets.env — entered ONCE)
 #   2. Claude Code config (.claude/settings*.json, docs/clean-code.md) — never
 #      clobbers this repo's Flutter CLAUDE.md / AGENTS.md
-#   3. Claude skills (superpowers · marketing-skills · ui-ux-pro-max · gstack · impeccable · aso-skills)
+#   3. Claude skills (superpowers · marketing-skills · ui-ux-pro-max · gstack · impeccable · aso-skills · mcp-appstore)
 #   4. Interview (app name · bundle id · idea · category)
 #   5. Scaffold (flutter create → rename → postcreate → dart_define → pub get)
 #   6. AI MVP build  (claude -p /mvp)
@@ -481,6 +481,28 @@ install_aso_skills() {
   fi
 }
 
+# appreply-co/mcp-appstore — the KEYLESS live App Store + Play Store data engine.
+# aso-skills only returns LIVE data with a paid Appeeky key (else it falls back to model
+# knowledge); this MCP server scrapes the public stores for free and gives real keyword
+# difficulty/traffic scores + competitor data. No npx one-liner exists → clone + npm install
+# + register by absolute path. Needs Node. Non-fatal throughout.
+MCP_APPSTORE_DIR="$HOME/.appfactory/mcp-appstore"
+install_mcp_appstore() {
+  command -v node >/dev/null 2>&1 || { warn "node missing — skipping mcp-appstore (live ASO data). Install Node 18+ and re-run."; return 0; }
+  if [[ ! -d "$MCP_APPSTORE_DIR/.git" ]]; then
+    gum spin --spinner dot --title "cloning mcp-appstore (live store data)" -- \
+      git clone --depth 1 https://github.com/appreply-co/mcp-appstore.git "$MCP_APPSTORE_DIR" \
+      || { warn "mcp-appstore clone failed — install manually: https://github.com/appreply-co/mcp-appstore"; return 0; }
+  fi
+  gum spin --spinner dot --title "npm install (mcp-appstore)" -- \
+    npm install --prefix "$MCP_APPSTORE_DIR" --silent || warn "npm install for mcp-appstore failed"
+  # Register at user scope so the headless /mvp build picks it up. Idempotent: a second
+  # run errors because it already exists — that's fine.
+  claude mcp add --scope user --transport stdio mcp-appstore -- node "$MCP_APPSTORE_DIR/server.js" >/dev/null 2>&1 \
+    && ok "registered mcp-appstore MCP server (keyless live store data)" \
+    || info "mcp-appstore already registered (or 'claude mcp add' unavailable)"
+}
+
 # Confirm every skill/plugin landed so a missing one fails loudly, not silently.
 verify_skills() {
   info "verifying skill matrix ..."
@@ -493,6 +515,11 @@ verify_skills() {
   [[ -d "$HOME/.claude/skills/aso-skills" ]] \
     && ok "aso-skills present" \
     || warn "aso-skills MISSING — install: npx -y skills add eronred/aso-skills --agent claude-code"
+  if claude mcp list 2>/dev/null | grep -q mcp-appstore; then
+    ok "mcp-appstore MCP server registered (keyless live ASO data)"
+  else
+    warn "mcp-appstore MISSING — live ASO data engine. Re-run setup, or see https://github.com/appreply-co/mcp-appstore"
+  fi
   grep -q '"superpowers@superpowers-marketplace"' .claude/settings.json 2>/dev/null \
     && ok "superpowers enabled in settings.json" \
     || warn "superpowers not found in settings.json enabledPlugins"
@@ -512,6 +539,7 @@ if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
     install_gstack
     install_impeccable
     install_aso_skills
+    install_mcp_appstore
     touch "$PLUGINS_MARK"
   else
     info "plugins already installed (--reinstall to redo)"
@@ -719,7 +747,7 @@ gum style --foreground "$CYAN" --bold \
   "          /feature       add a screen (11-step recipe)" \
   "          /theme         tune the Material 3 theme" \
   "          /wire-paywall  RevenueCat (entitlement \"premium\")" \
-  "          /aso           store keywords + description (marketing-skills)" \
+  "          /aso           keywords + metadata (aso-skills data; marketing-skills copy)" \
   "          /legal         privacy/terms pages + in-app links" \
   "          /ship-check    pre-submit gate → PASS/FAIL" \
   "" \
