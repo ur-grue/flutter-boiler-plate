@@ -7,8 +7,14 @@
 #   bash scripts/postcreate.sh
 #
 # Applies:
+#   - Swift Package Manager OFF (Flutter >= 3.44 enables it; google_mobile_ads is
+#     CocoaPods-only and its transitive webview_flutter_wkwebview breaks pod install).
 #   - Android: core library desugaring (flutter_local_notifications) + minSdk 23
 #     (google_mobile_ads / RevenueCat) in build.gradle.kts or build.gradle.
+#   - AdMob app id: GADApplicationIdentifier (iOS) + APPLICATION_ID (Android). The SDK
+#     does a publisher check at LAUNCH even when ads are off (it's linked), so a missing
+#     id is an instant SIGABRT. We inject Google's PUBLIC SAMPLE ids — safe until you
+#     ship real ads, at which point you replace them with your real AdMob app ids.
 #   - iOS: Podfile platform :ios, '13.0' (RevenueCat).
 #
 # Non-fatal: if a future Flutter changes the generated files and a pattern does
@@ -24,6 +30,18 @@ hd()   { printf "\n${B}%s${X}\n" "$1"; }
 DESUGAR_LIB="com.android.tools:desugar_jdk_libs:2.1.4"
 MIN_SDK=23
 IOS_TARGET="13.0"
+# Google's PUBLIC sample AdMob app ids (safe placeholders; replace before shipping real ads).
+ADMOB_APP_ID_IOS="ca-app-pub-3940256099942544~1458002511"
+ADMOB_APP_ID_ANDROID="ca-app-pub-3940256099942544~3347511713"
+
+# Swift Package Manager OFF (must happen before pod install). Flutter >= 3.44 enables SPM
+# by default, but google_mobile_ads is CocoaPods-only → pod install fails on its transitive
+# webview_flutter_wkwebview. Global, idempotent, non-fatal.
+if command -v flutter >/dev/null 2>&1; then
+  flutter config --no-enable-swift-package-manager >/dev/null 2>&1 \
+    && ok "Swift Package Manager disabled (CocoaPods for google_mobile_ads)" \
+    || note "Could not toggle SPM — run: flutter config --no-enable-swift-package-manager"
+fi
 
 # Auto-generate platform folders if missing (so this is truly one-shot).
 # Mobile only — desktop/web targets pull in plugins this factory never uses.
@@ -87,6 +105,26 @@ else
   note "No Android gradle file found — skipped."
 fi
 
+# AdMob APPLICATION_ID in AndroidManifest (else SIGABRT at launch even with ads off).
+MANIFEST="android/app/src/main/AndroidManifest.xml"
+if [[ -f "$MANIFEST" ]]; then
+  if grep -q "com.google.android.gms.ads.APPLICATION_ID" "$MANIFEST"; then
+    ok "AdMob APPLICATION_ID present"
+  elif grep -q "</application>" "$MANIFEST"; then
+    tmp="$(mktemp)"
+    awk -v id="$ADMOB_APP_ID_ANDROID" '
+      /<\/application>/ && !done {
+        print "        <meta-data"
+        print "            android:name=\"com.google.android.gms.ads.APPLICATION_ID\""
+        print "            android:value=\"" id "\"/>"
+        done=1
+      }
+      { print }' "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST" && ok "AdMob APPLICATION_ID → sample id"
+  else
+    note "Add the AdMob APPLICATION_ID meta-data to $MANIFEST (inside <application>)"
+  fi
+fi
+
 # ---------------- iOS ----------------
 hd "iOS"
 POD="ios/Podfile"
@@ -101,6 +139,50 @@ if [[ -f "$POD" ]]; then
   fi
 else
   note "No ios/Podfile yet (created on first iOS build) — set platform :ios, '$IOS_TARGET' then."
+fi
+
+# AdMob GADApplicationIdentifier in Info.plist (else GADApplicationVerifyPublisher… → SIGABRT
+# at launch even with ads off). PlistBuddy on macOS; awk insert before the root </dict> elsewhere.
+PLIST="ios/Runner/Info.plist"
+if [[ -f "$PLIST" ]]; then
+  if grep -q "GADApplicationIdentifier" "$PLIST"; then
+    ok "GADApplicationIdentifier present"
+  elif [[ -x /usr/libexec/PlistBuddy ]]; then
+    /usr/libexec/PlistBuddy -c "Add :GADApplicationIdentifier string $ADMOB_APP_ID_IOS" "$PLIST" >/dev/null 2>&1 \
+      || /usr/libexec/PlistBuddy -c "Set :GADApplicationIdentifier $ADMOB_APP_ID_IOS" "$PLIST" >/dev/null 2>&1
+    ok "GADApplicationIdentifier → sample id"
+  else
+    tmp="$(mktemp)"
+    # Insert before the ROOT </dict> (the LAST one — the first could be a nested dict).
+    awk -v id="$ADMOB_APP_ID_IOS" '
+      { lines[NR]=$0; if ($0 ~ /<\/dict>/) last=NR }
+      END {
+        for (i=1; i<=NR; i++) {
+          if (i==last) {
+            print "\t<key>GADApplicationIdentifier</key>"
+            print "\t<string>" id "</string>"
+          }
+          print lines[i]
+        }
+      }' "$PLIST" > "$tmp" && mv "$tmp" "$PLIST" && ok "GADApplicationIdentifier → sample id"
+  fi
+else
+  note "No ios/Runner/Info.plist yet — set GADApplicationIdentifier after flutter create."
+fi
+
+# ---------------- App launcher icon ----------------
+# Replace the default Flutter logo with the app icon. Needs the platform folders (above) and
+# the source asset (written by /theme; a placeholder ships in the template). Idempotent.
+hd "App icon"
+if [[ -f assets/icon/app_icon.png ]] && command -v flutter >/dev/null 2>&1; then
+  if flutter pub run flutter_launcher_icons >/dev/null 2>&1 \
+     || dart run flutter_launcher_icons >/dev/null 2>&1; then
+    ok "Launcher icons generated from assets/icon/app_icon.png (no more Flutter default logo)"
+  else
+    note "flutter_launcher_icons failed — run: dart run flutter_launcher_icons"
+  fi
+else
+  note "No assets/icon/app_icon.png (or flutter missing) — /theme writes it; then: dart run flutter_launcher_icons"
 fi
 
 hd "Done"

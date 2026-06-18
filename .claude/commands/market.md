@@ -6,9 +6,10 @@ re-hit Appeeky/mcp-appstore from later steps — they read this file. Input: `AP
 
 ## Engines / lanes
 - **Live data → `mcp-appstore` tools** (keyless): `search_app` + `get_similar_apps` (5–8 real
-  competitors), `get_app_details` + `get_pricing_details` (real monetization), `analyze_top_keywords`
-  + `suggest_keywords_by_competition` / `_by_search` / `_by_similarity` (candidates),
-  `get_keyword_scores` (real difficulty + traffic), `analyze_reviews` (unmet-need gaps).
+  competitors), `get_app_details` + `get_pricing_details` (real monetization **+ each competitor's
+  icon URL — capture the visual/logo style; it feeds /theme's app-icon design**),
+  `analyze_top_keywords` + `suggest_keywords_by_competition` / `_by_search` / `_by_similarity`
+  (candidates), `get_keyword_scores` (real difficulty + traffic), `analyze_reviews` (gaps).
 - **Method/routing → `aso-skills`** via `aso-router`: `competitor-analysis`, `market-pulse`,
   `market-movers`, `category-positioning`, `app-marketing-context`, `monetization-strategy`,
   `keyword-research`.
@@ -40,6 +41,8 @@ for lack of network — a LOW-CONFIDENCE MARKET.md is still the single source la
 ## 2. Differentiation angle (Apple 4.3)
 - One paragraph, meaningfully distinct from §1 (not a clone) + the specific unmet need
   (from analyze_reviews) we build around.
+- Visual/icon landscape: the common icon style in this category (colors, glyph vs. wordmark)
+  and how OUR icon should stand out on the shelf — feeds /theme + `app-icon-optimization`.
 
 ## 3. Category & positioning
 - Primary + secondary store category; where we sit vs. the leaders; why.

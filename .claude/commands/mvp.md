@@ -45,10 +45,17 @@ Do, in order:
    skill to fix spacing, visual hierarchy, and AI-slop patterns.  → commit
 9. Quality gate: run `/simplify` (reuse/efficiency cleanup), gstack `review` (code review),
    then gstack `health` as the final quality gate. Resolve blockers before finishing.  → commit
-10. /ship-check → PASS/FAIL + top fixes.
+10. **LAUNCH PROOF (mandatory — green tests do NOT prove the app runs):**
+    `bash scripts/smoke-launch.sh` builds the app and runs it on a real iOS simulator via
+    `integration_test/app_boot_test.dart` (full `bootstrap` + `runApp`). This is the ONLY step
+    that catches native-plugin launch crashes (e.g. a missing AdMob app id → SIGABRT),
+    DI/bootstrap failures, and pod-install/SPM errors — none of which `flutter test` (host VM)
+    can see. If it fails, FIX and re-run; do not finish.  → commit
+11. /ship-check → PASS/FAIL + top fixes.
 Optional (user-run, real device): gstack `ios-qa` / `ios-design-review` for
 live-hardware QA — mention these but do not require them to finish.
-Finish only when the verify loop is clean (`dart fix` leaves nothing, analyze clean, tests
-pass) AND all work is committed.
+Finish only when: the verify loop is clean (`dart fix` leaves nothing, analyze clean, tests
+pass), **the launch proof (step 10) succeeded — the app provably starts on a simulator, not
+just green unit tests**, AND all work is committed. "analyze + test green" is NOT done.
 Print: how to test it on a device — `bash scripts/run.sh` (iOS simulator needs no signing) —
 and a short list of what changed. DO NOT `git push` and DO NOT submit to stores.

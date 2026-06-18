@@ -51,10 +51,25 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^4.0.0
   bloc_test: ^9.1.7
   mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   generate: true
   uses-material-design: true
+
+# App launcher icon. /theme writes assets/icon/app_icon.png (1024x1024, NO alpha) from the
+# brand + seed color, then scripts/postcreate.sh runs `dart run flutter_launcher_icons` (after
+# the platform folders exist) to replace the default Flutter logo on iOS + Android.
+# `adaptive_icon_background` should match the app's theme seed — /theme updates this value.
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  ios: true
+  remove_alpha_ios: true            # iOS rejects transparent icons
+  android: true
+  adaptive_icon_background: "#6750A4"   # default seed (Material baseline); /theme overwrites it
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
