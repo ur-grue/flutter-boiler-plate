@@ -9,7 +9,7 @@
 #   1. Central secrets  (~/.appfactory/secrets.env — entered ONCE)
 #   2. Claude Code config (.claude/settings*.json, docs/clean-code.md) — never
 #      clobbers this repo's Flutter CLAUDE.md / AGENTS.md
-#   3. Claude plugins (superpowers · marketing-skills)
+#   3. Claude skills (superpowers · marketing-skills · gstack · impeccable)
 #   4. Interview (app name · bundle id · idea · category)
 #   5. Scaffold (flutter create → rename → postcreate → dart_define → pub get)
 #   6. AI MVP build  (claude -p /mvp)
@@ -417,14 +417,68 @@ install_plugin() {
     || { patch_enabled_plugin "$key" && warn "patched enabledPlugins manually" || true; }
 }
 
+# Garry Tan's gstack skill suite (git clone + ./setup). Idempotent, non-fatal.
+install_gstack() {
+  local dest="$HOME/.claude/skills/gstack"
+  if [[ -d "$dest" ]]; then
+    info "gstack already present at $dest"
+    return 0
+  fi
+  if gum spin --spinner globe --title "cloning gstack ..." \
+      -- git clone --depth 1 https://github.com/garrytan/gstack.git "$dest"; then
+    if gum spin --spinner pulse --title "running gstack setup ..." \
+        -- zsh -c "cd \"$dest\" && ./setup"; then
+      ok "installed gstack"
+    else
+      warn "gstack setup returned nonzero — run manually: (cd $dest && ./setup)"
+    fi
+  else
+    warn "gstack clone failed — install manually: git clone --depth 1 https://github.com/garrytan/gstack.git $dest"
+  fi
+}
+
+# Paul Bakaus' impeccable design-polish skill (skills CLI). Non-fatal.
+install_impeccable() {
+  if [[ -d "$HOME/.claude/skills/impeccable" ]]; then
+    info "impeccable already present"
+    return 0
+  fi
+  if gum spin --spinner pulse --title "installing impeccable ..." \
+      -- npx -y skills add pbakaus/impeccable --agent claude-code; then
+    ok "installed impeccable"
+  else
+    warn "impeccable install failed — run manually: npx -y skills add pbakaus/impeccable --agent claude-code"
+  fi
+}
+
+# Confirm every skill/plugin landed so a missing one fails loudly, not silently.
+verify_skills() {
+  info "verifying skill matrix ..."
+  [[ -d "$HOME/.claude/skills/gstack" ]] \
+    && ok "gstack present" \
+    || warn "gstack MISSING — install: git clone --depth 1 https://github.com/garrytan/gstack.git $HOME/.claude/skills/gstack"
+  [[ -d "$HOME/.claude/skills/impeccable" ]] \
+    && ok "impeccable present" \
+    || warn "impeccable MISSING — install: npx -y skills add pbakaus/impeccable --agent claude-code"
+  grep -q '"superpowers@superpowers-marketplace"' .claude/settings.json 2>/dev/null \
+    && ok "superpowers enabled in settings.json" \
+    || warn "superpowers not found in settings.json enabledPlugins"
+  grep -q '"marketing-skills@marketingskills"' .claude/settings.json 2>/dev/null \
+    && ok "marketing-skills enabled in settings.json" \
+    || warn "marketing-skills not found in settings.json enabledPlugins"
+}
+
 if (( DO_PLUGINS )) && command -v claude >/dev/null 2>&1; then
   if [[ ! -f "$PLUGINS_MARK" || $REINSTALL -eq 1 ]]; then
     install_plugin "obra/superpowers-marketplace"  "superpowers-marketplace" "superpowers"
     install_plugin "coreyhaines31/marketingskills" "marketingskills"         "marketing-skills"
+    install_gstack
+    install_impeccable
     touch "$PLUGINS_MARK"
   else
     info "plugins already installed (--reinstall to redo)"
   fi
+  verify_skills
 elif (( DO_PLUGINS )); then
   warn "claude CLI not found — skipping plugin install"
 else
@@ -516,4 +570,29 @@ gum style --foreground "$GREEN" --bold \
   "  1. test:     flutter run --dart-define-from-file=dart_define.dev.json" \
   "  2. verify:   flutter analyze && flutter test" \
   "  3. ship:     ./ship.sh"
+echo
+
+# ── idea → ship journey (verbose, for first-time users) ──────────────────────────
+gum style --foreground "$CYAN" --bold \
+  --border-foreground "$PURP" --border normal \
+  --align left --width 78 --padding "1 2" \
+  "◢◤  IDEA → SHIP  //  what to do now  ◥◣" \
+  "" \
+  "TEST    run the app on a device/simulator:" \
+  "          flutter run --dart-define-from-file=dart_define.dev.json" \
+  "" \
+  "ITERATE inside  claude  — add to the MVP with slash commands:" \
+  "          /feature       add a screen (11-step recipe)" \
+  "          /theme         tune the Material 3 theme" \
+  "          /wire-paywall  RevenueCat (entitlement \"premium\")" \
+  "          /aso           store keywords + description (marketing-skills)" \
+  "          /legal         privacy/terms pages + in-app links" \
+  "          /ship-check    pre-submit gate → PASS/FAIL" \
+  "" \
+  "VERIFY  keep it green:" \
+  "          flutter analyze && flutter test" \
+  "" \
+  "SHIP    pre-flight + release build, then submit by hand:" \
+  "          ./ship.sh      (runs /release: pre-flight + release build)" \
+  "          then upload via App Store Connect / Play Console"
 echo

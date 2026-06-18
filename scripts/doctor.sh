@@ -118,6 +118,19 @@ else
   note "Localizations not generated  →  run: flutter gen-l10n"
 fi
 
+hd "Skills (Claude Code automation, optional)"
+skills_dir="$HOME/.claude/skills"
+if [[ -d "$skills_dir/gstack" ]]; then
+  ok "gstack present"
+else
+  note "gstack not found  →  run: ./setup.zsh (Phase 3), or git clone --depth 1 https://github.com/garrytan/gstack.git $skills_dir/gstack && (cd $skills_dir/gstack && ./setup)"
+fi
+if [[ -d "$skills_dir/impeccable" ]]; then
+  ok "impeccable present"
+else
+  note "impeccable not found  →  run: npx -y skills add pbakaus/impeccable --agent claude-code"
+fi
+
 hd "flutter doctor"
 if command -v flutter >/dev/null 2>&1; then
   flutter doctor || true
