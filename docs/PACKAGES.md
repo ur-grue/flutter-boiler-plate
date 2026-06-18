@@ -44,6 +44,40 @@ and `notifications` — so the app always compiles and runs keyless.
 | Connectivity | **`connectivity_plus`** | Maintained `*_plus` family, no codegen. |
 | Device / package info | **`device_info_plus`**, **`package_info_plus`** | Maintained, no codegen. |
 | Logging | **`logger`** or `dart:developer` | No codegen. Keep noise low. |
+| Motion sensors (accel/gyro/magnetometer/**barometer**) | **`sensors_plus`** | `*_plus`, no codegen. **Streams**, often 50–200 Hz → see "Realtime & sensors" below; never emit a Cubit state per sample. |
+| Location / GPS | **`geolocator`** | Native perms (Info.plist usage string + Android perms) added per app. Behind a `services/` interface with a mock default. |
+| Camera viewfinder | **`camera`** (live preview) or **`image_picker`** (one-shot) | Native perms. Heavy; isolate decode if processing frames. |
+| Bluetooth LE | **`flutter_blue_plus`** | Streams of scan results/notifications. Native perms. Behind a service. |
+| NFC | **`nfc_manager`** | iOS entitlement + Android perm. Behind a service. |
+| Audio playback / record | **`just_audio`** / **`record`** | No codegen. DSP-heavy work → isolate; don't block the UI isolate. |
+| Realtime networking (multiplayer, live data) | **`web_socket_channel`** / **`socket_io_client`** | Streaming, **not** request/response — wrap as a `Stream<T>` repository (see below), not the `dio` + `Result<T>` pattern. |
+| Heavy compute (ML, image/video, parsing) | **`dart:isolate`** / **`compute`**, **`dart:ffi`** for native | Offload off the UI isolate. Not scaffolded — add per app. |
+
+## Realtime & sensors (streams, not request/response)
+
+The repository pattern here returns `Future<Result<T>>` — perfect for request/response
+(REST, RPC). High-frequency sources (sensors, sockets, BLE, audio levels) are **streams**,
+and the same layering still applies — just with a stream signature:
+
+- Expose `Stream<T>` from the repository/service interface, e.g.
+  `Stream<MotionSample> motion()` or `Stream<GameSnapshot> snapshots()`. Keep a **mock
+  default** (a synthetic `Stream`) so the app runs keyless and tests stay offline.
+- **Do not emit a Cubit state per sample.** Pumping a 100 Hz gyro stream through
+  `emit(ImmutableState(...))` + `Equatable` rebuilds the widget tree 100×/s. Instead:
+  throttle/buffer in the Cubit (emit coarse, derived state), or for the hot visual path
+  drive an `AnimatedBuilder`/`StreamBuilder`/`CustomPainter` off the raw stream and reserve
+  the Cubit for coarse state (recording? permission granted? error?).
+- **Native permissions are per-app.** Sensors/location/camera/BLE/NFC need Info.plist usage
+  strings and AndroidManifest permissions that this template does **not** pre-declare (it
+  can't know which you need). Add them when you wire the capability.
+
+## Not the right base: real-time games
+
+This is an **app** foundation (Cubit + immutable state + screen routing), not a **game
+engine**. A 60 fps game loop wants mutable per-frame state and a render surface, which fights
+the immutable-state model. For the gameplay layer use **`flame`** (+ `forge2d`) or the Flutter
+Casual Games Toolkit. You can still use this template for the **shell** around a game — auth,
+store/IAP, leaderboards UI, settings — and embed the game as a widget.
 
 ## DO NOT ADD (violates the no-codegen rule)
 

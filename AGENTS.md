@@ -9,6 +9,29 @@ A production-grade Flutter **template** for building mobile apps. It runs with
 **zero API keys** out of the box (mock/no-op service impls). Swap mocks for real
 backends/services without touching UI or domain code.
 
+## Is this template a fit? (read before building)
+
+This is an opinionated **app** foundation — Cubit + immutable state, `Result<T>`
+request/response repositories, `go_router` screen navigation, no codegen. It's the right
+base for the large class of apps that are screens over async data:
+
+- **Great fit:** content/CRUD, productivity, social, e-commerce, subscriptions, utilities,
+  onboarding/auth/settings/paywall flows, REST/Supabase-backed apps. Most apps.
+- **Fits with care:** sensor/hardware apps (gyro, barometer, GPS, camera, BLE, NFC), realtime
+  (sockets, multiplayer state), audio, offline-DB apps. Flutter abstracts the hardware via
+  plugins and the `services/` interface pattern holds — but these are **streams**, not
+  request/response, and high-frequency data must not flow through Cubit-per-sample. See the
+  "Realtime & sensors" section in [docs/PACKAGES.md](docs/PACKAGES.md). DB-heavy apps must add
+  their own store within the no-codegen rule (`sqflite`/`hive`/`sembast`).
+- **Wrong base:** real-time **games** (60 fps loop, mutable per-frame state) — use `flame` or
+  the Flutter Casual Games Toolkit for the gameplay layer; this template can still be the shell
+  (auth, store, leaderboards UI). Likewise AR/on-device-ML-heavy apps need isolates/FFI not
+  scaffolded here.
+
+Bottom line: Flutter can build almost anything, but this template's *patterns* are tuned for
+app-shaped apps. For the hot paths above, follow the streaming guidance instead of forcing the
+Cubit/Result mold — don't fight the framework, and don't pretend the template covers a game engine.
+
 ## Golden rules
 
 1. **Architecture is layered and one-directional:** `presentation → domain ← data`.
